@@ -152,4 +152,36 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-export { registerUser, loginUser };
+const logoutUser = asyncHandler(async (req, res) => {
+  // Step 1: veryJWT to get the user's id
+  const userID = req.user._id;
+
+  // Step 2: update the exist refresh token in DB
+  await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      // This is used to new updated data like refreshToken: undefined
+      new: true,
+    }
+  );
+
+  // Step 3: clear the cookies and return the response to the client
+  const options = {
+    // This option makes not modifiable cookies from the client side
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out"));
+});
+
+export { registerUser, loginUser, logoutUser };
