@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
@@ -41,14 +42,28 @@ const userSchema = new mongoose.Schema(
       required: [true, "Please enter your password"],
       minLength: [6, "Password must be at least 6 characters"],
     },
-    refreshToken: {
-      type: String,
-    },
     role: {
       type: String,
       enum: ["admin", "user"],
       default: "user",
     },
+    isVerify: {
+      type: Boolean,
+      default: false,
+    },
+    isTwoStepVerification: {
+      type: Boolean,
+      default: false,
+    },
+    refreshToken: {
+      type: String,
+    },
+    verificationToken: String,
+    verificationTokenExpiry: Date,
+    resetPasswordToken: String,
+    resetPasswordTokenExpiry: Date,
+    otpToken: String,
+    otpTokenExpiry: Date,
   },
   { timestamps: true }
 );
@@ -93,6 +108,57 @@ userSchema.methods.generateRefreshToken = function () {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
     }
   );
+};
+
+// Use our custom method "getResetPasswordToken" to generate the reset password token
+userSchema.methods.getResetPasswordToken = function () {
+  // Step 1: Generate Random Token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  // Step 2: Hash Token
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Step 3: Set Reset Password Expiry
+  this.resetPasswordTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+  // Return Reset Token
+  return resetToken;
+};
+
+// Use our custom method "getResetVerificationToken" to generate the email verification token
+userSchema.methods.getResetVerificationToken = function () {
+  // Step 1: Generate Random Token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  // Step 2: Hash Token
+  this.verificationToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Step 3: Set Reset Password Expiry
+  this.verificationTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+  // Return Reset Token
+  return resetToken;
+};
+
+// Use our custom method "generateRandomOTPToken" to generate the random OTP
+userSchema.methods.generateRandomOTPToken = function () {
+  // Step 1: Generate 6 digit random OTP
+  const randomOTP = crypto.randomBytes(3).toString("hex");
+
+  // Step 2: Hashed Random OTP
+  this.otpToken = crypto.createHash("sha256").update(randomOTP).digest("hex");
+
+  // Step 3: Set OTP Expiry
+  this.otpTokenExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  // Return Random OTP
+  return randomOTP;
 };
 
 export const User = mongoose.model("User", userSchema);
