@@ -1,6 +1,9 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteFromCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
@@ -632,6 +635,197 @@ const verifyOTPWhileLoging = asyncHandler(async (req, res) => {
     );
 });
 
+const getUserProfile = asyncHandler(async (req, res) => {
+  // Step 1: veryJWT to get the user's id
+  const userID = req.user?._id;
+
+  // Step 2: get user from DB via userID & remove sensitive information from user
+  const user = await User.findById(userID).select("-password -refreshToken");
+
+  // Step 3: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User fetched successfully"));
+});
+
+const updateUserProfile = asyncHandler(async (req, res) => {
+  // Important Question: What do I want to update the specific field?
+  // Answer: I want to update three fields are email, username and fullname
+
+  // Step 1: get email, username and fullname from user
+  const { fullName, email, username } = req.body;
+  if (!fullName || !email || !username) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Step 2: get user id to update the modified fields in DB
+  const userID = req.user?._id;
+  const user = await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        fullName,
+        email: email,
+        username,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  // Step 3: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  // Step 1: get a local path of new avatar image
+  const avatarLocalPath = req.file?.path;
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is missing");
+  }
+
+  // Step 2: upload new avatar image from local disk to cloudinary
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar.url) {
+    throw new ApiError(400, "Error while uploading on avatar");
+  }
+
+  // Step 3: get user id to update the user's avatar filed with new avatar image in DB
+  const userID = req.user?._id;
+  // Save old file url before updating with new file to delete the file from cloudinary
+  const oldAvatar = await User.findById(userID);
+  const user = await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  // Step 4: delete old avatar image from cloudinary
+  await deleteFromCloudinary(oldAvatar.avatar);
+
+  // Step 5: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar image updated successfully"));
+});
+
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  // Step 1: get a local path of new cover image
+  const coverImageLocalPath = req.file?.path;
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, "Cover image file is missing");
+  }
+
+  // Step 2: upload new cover image from local disk to cloudinary
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  if (!coverImage.url) {
+    throw new ApiError(400, "Error while uploading on cover image");
+  }
+
+  // Step 3: get user id to update the user's cover image filed with new cover image in DB
+  const userID = req.user?._id;
+  // Save old file url before updating with new file to delete the file from cloudinary
+  const oldCoverImage = await User.findById(userID);
+  const user = await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  // Step 4: delete old cover image from cloudinary
+  await deleteFromCloudinary(oldCoverImage.coverImage);
+
+  // Step 5: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Cover image updated successfully"));
+});
+
+const deleteUserAvatar = asyncHandler(async (req, res) => {
+  // Step 1: get user id to update the user's avatar = ""
+  const userID = req.user?._id;
+  // Save old file url before updating with avatar = "" to delete the file from cloudinary
+  const oldAvatar = await User.findById(userID);
+  const user = await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        avatar: "",
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  // Step 2: delete old avatar image from cloudinary
+  await deleteFromCloudinary(oldAvatar.avatar);
+
+  // Step 3: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar image deleted successfully"));
+});
+
+const deleteUserCoverImage = asyncHandler(async (req, res) => {
+  // Step 1: get user id to update the user's coverImage = ""
+  const userID = req.user?._id;
+  // Save old file url before updating with coverImage = "" to delete the file from cloudinary
+  const oldCoverImage = await User.findById(userID);
+  const user = await User.findByIdAndUpdate(
+    userID,
+    {
+      $set: {
+        coverImage: "",
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  // Step 2: delete old cover image from cloudinary
+  await deleteFromCloudinary(oldCoverImage.coverImage);
+
+  // Step 3: return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Cover image deleted successfully"));
+});
+
+const deleteUserProfile = asyncHandler(async (req, res) => {
+  // Step 1: veryJWT to get the user's id
+  const userID = req.user?._id;
+
+  // Step 2: delete avatar and covver image from cloudinary
+  const user = await User.findById(userID);
+  await deleteFromCloudinary(user?.avatar);
+  await deleteFromCloudinary(user?.coverImage);
+
+  console.log("user::::", user.fullName);
+
+  // Step 3: delete user from DB
+  await User.deleteOne({ _id: userID });
+
+  // Step 4: clear the cookies and return the response to the client
+  const options = {
+    // This option makes not modifiable cookies from the client side
+    httpOnly: true,
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User deleted successfully"));
+});
+
 export {
   registerUser,
   sendEmailVerificationLink,
@@ -644,4 +838,11 @@ export {
   sendOTPForTwoStepVerification,
   verifyOTPToToggleTwoStepVerification,
   verifyOTPWhileLoging,
+  getUserProfile,
+  updateUserProfile,
+  updateUserAvatar,
+  updateUserCoverImage,
+  deleteUserAvatar,
+  deleteUserCoverImage,
+  deleteUserProfile,
 };

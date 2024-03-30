@@ -11,6 +11,13 @@ import {
   sendOTPForTwoStepVerification,
   verifyOTPToToggleTwoStepVerification,
   verifyOTPWhileLoging,
+  getUserProfile,
+  updateUserProfile,
+  updateUserAvatar,
+  updateUserCoverImage,
+  deleteUserAvatar,
+  deleteUserCoverImage,
+  deleteUserProfile,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
@@ -49,5 +56,17 @@ router
 router
   .route("/verify-otp-for-two-step-verification")
   .patch(verifyJWT, verifyOTPToToggleTwoStepVerification);
+
+router.route("/profile").get(verifyJWT, getUserProfile);
+router.route("/update-account-details").patch(verifyJWT, updateUserProfile);
+router
+  .route("/update-avatar")
+  .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
+router
+  .route("/update-cover-image")
+  .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
+router.route("/delete-avatar").delete(verifyJWT, deleteUserAvatar);
+router.route("/delete-cover-image").delete(verifyJWT, deleteUserCoverImage);
+router.route("/delete-profile").delete(verifyJWT, deleteUserProfile);
 
 export default router;
