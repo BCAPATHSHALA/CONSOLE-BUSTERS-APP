@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
+// Authenticated (You should logged in to secure data)
 export const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
     // Step 1: access token from cookies or header
@@ -38,3 +39,14 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
     throw new ApiError(401, error?.message || "Invalid access token");
   }
 });
+
+// AuthorizedAdmin (You should logged as well as your role is admin to access the admin data)
+export const authorizedAdmin = (req, _, next) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(
+      403,
+      `${req.user.role} is now allowed to access this resource`
+    );
+  }
+  next();
+};

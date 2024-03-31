@@ -18,13 +18,18 @@ import {
   deleteUserAvatar,
   deleteUserCoverImage,
   deleteUserProfile,
+  getAllUsers,
+  getSingleUserByID,
+  updateSingleUserByID,
+  deleteSingleUserByID,
+  blockAndUnblockSingleUserByID,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+import { authorizedAdmin, verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-router.route("/register").post(
+router.route("/users/register").post(
   // Step 1: get user details from frontend
   upload.fields([
     {
@@ -39,34 +44,50 @@ router.route("/register").post(
   registerUser
 );
 
-router.route("/email-verification").post(sendEmailVerificationLink);
-router.route("/email-verification/:resetToken").patch(verifyEmail);
-router.route("/forgot-password").post(forgotPassword);
-router.route("/reset-password/:resetToken").patch(resetPassword);
+router.route("/users/email-verification").post(sendEmailVerificationLink);
+router.route("/users/email-verification/:resetToken").patch(verifyEmail);
+router.route("/users/forgot-password").post(forgotPassword);
+router.route("/users/reset-password/:resetToken").patch(resetPassword);
 
-router.route("/login").post(loginUser);
-router.route("/verify-otp-while-login").patch(verifyOTPWhileLoging);
+router.route("/users/login").post(loginUser);
+router.route("/users/verify-otp-while-login").patch(verifyOTPWhileLoging);
 
 // Secure Routes
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/refresh").post(refreshAccessToken);
+router.route("/users/logout").post(verifyJWT, logoutUser);
+router.route("/users/refresh").post(refreshAccessToken);
 router
-  .route("/send-otp-for-two-step-verification")
+  .route("/users/send-otp-for-two-step-verification")
   .post(verifyJWT, sendOTPForTwoStepVerification);
 router
-  .route("/verify-otp-for-two-step-verification")
+  .route("/users/verify-otp-for-two-step-verification")
   .patch(verifyJWT, verifyOTPToToggleTwoStepVerification);
 
-router.route("/profile").get(verifyJWT, getUserProfile);
-router.route("/update-account-details").patch(verifyJWT, updateUserProfile);
+router.route("/users/profile").get(verifyJWT, getUserProfile);
 router
-  .route("/update-avatar")
+  .route("/users/update-account-details")
+  .patch(verifyJWT, updateUserProfile);
+router
+  .route("/users/update-avatar")
   .patch(verifyJWT, upload.single("avatar"), updateUserAvatar);
 router
-  .route("/update-cover-image")
+  .route("/users/update-cover-image")
   .patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
-router.route("/delete-avatar").delete(verifyJWT, deleteUserAvatar);
-router.route("/delete-cover-image").delete(verifyJWT, deleteUserCoverImage);
-router.route("/delete-profile").delete(verifyJWT, deleteUserProfile);
+router.route("/users/delete-avatar").delete(verifyJWT, deleteUserAvatar);
+router
+  .route("/users/delete-cover-image")
+  .delete(verifyJWT, deleteUserCoverImage);
+router.route("/users/delete-profile").delete(verifyJWT, deleteUserProfile);
+
+// Admin secure routes api/v1/users/admin
+router.route("/admin/users").get(verifyJWT, authorizedAdmin, getAllUsers);
+router
+  .route("/admin/user/:id")
+  .get(verifyJWT, authorizedAdmin, getSingleUserByID)
+  .patch(verifyJWT, authorizedAdmin, updateSingleUserByID)
+  .delete(verifyJWT, authorizedAdmin, deleteSingleUserByID);
+
+router
+  .route("/admin/user/block-unblock/:id")
+  .patch(verifyJWT, authorizedAdmin, blockAndUnblockSingleUserByID);
 
 export default router;

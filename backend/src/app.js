@@ -26,6 +26,31 @@ app.use(cookieParser());
 import userRouter from "./routes/user.routes.js";
 
 // Routes declaration middlewares
-app.use("/api/v1/users", userRouter);
+app.use("/api/v1", userRouter);
+
+// Time Scheduler 1: Automatically unblock users after 2 days
+import nodeCron from "node-cron";
+import { User } from "./models/user.model.js";
+import { unblockUser } from "./controllers/user.controller.js";
+
+// Time schedule to run every day at midnight
+nodeCron.schedule("0 0 * * * *", async () => {
+  try {
+    // Step 1: Find all users who were blocked 2 days ago
+    const blockedUsers = await User.find({
+      isBlocked: true,
+      blockedUntil: { $lte: Date.now() },
+    });
+
+    console.log("blockedUsers::: ", blockedUsers);
+
+    // Step 2: Unblock each user found
+    blockedUsers.forEach(async (user) => {
+      await unblockUser(user._id);
+    });
+  } catch (error) {
+    console.error("Error occurred:", error);
+  }
+});
 
 export { app };

@@ -51,6 +51,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
     isTwoStepVerification: {
       type: Boolean,
       default: false,
@@ -64,6 +68,7 @@ const userSchema = new mongoose.Schema(
     resetPasswordTokenExpiry: Date,
     otpToken: String,
     otpTokenExpiry: Date,
+    blockedUntil: Date,
   },
   { timestamps: true }
 );

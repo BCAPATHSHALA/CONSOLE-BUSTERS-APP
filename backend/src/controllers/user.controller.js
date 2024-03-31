@@ -9,7 +9,10 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
+import { ApiFeatures } from "../utils/apiFeatures.js";
+import { BLOCK_EXPIRY } from "../constants.js";
 
+// Method to generate the access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findOne(userId);
@@ -30,6 +33,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
+// Method to send OTP while login
 const sendOTPWhileLogin = async (user) => {
   // Step 1: Generate and send OTP
   const randomOTP = user.generateRandomOTPToken();
@@ -48,6 +52,20 @@ const sendOTPWhileLogin = async (user) => {
   );
 
   return response;
+};
+
+// Method to unblock a user
+const unblockUser = async (userId) => {
+  try {
+    await User.findByIdAndUpdate(
+      userId,
+      { $set: { isBlocked: false, blockedUntil: null } },
+      { new: true }
+    );
+    console.log(`User ${userId} has been unblocked.`);
+  } catch (error) {
+    console.error(`Error unblocking user: ${error.message}`);
+  }
 };
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -141,6 +159,14 @@ const loginUser = asyncHandler(async (req, res) => {
   // Todo: check email is verified or not (Handled by Frontend Developer: redirect to the send email verification page)
   if (!user.isVerify) {
     throw new ApiError(400, "Please first verify your registered email");
+  }
+
+  // Todo: check user is blocked or unblocked
+  if (user.isBlocked) {
+    throw new ApiError(
+      400,
+      `You are temporarily blocked for ${BLOCK_EXPIRY} days.`
+    );
   }
 
   // Step 5: verify the input password from DB password
@@ -807,7 +833,7 @@ const deleteUserProfile = asyncHandler(async (req, res) => {
   await deleteFromCloudinary(user?.avatar);
   await deleteFromCloudinary(user?.coverImage);
 
-  console.log("user::::", user.fullName);
+  // console.log("user::::", user.fullName);
 
   // Step 3: delete user from DB
   await User.deleteOne({ _id: userID });
@@ -824,6 +850,135 @@ const deleteUserProfile = asyncHandler(async (req, res) => {
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, {}, "User deleted successfully"));
+});
+
+// Admin APIs
+
+const getAllUsers = asyncHandler(async (req, res) => {
+  // Get the users (collection) from DB by username (query keyword)
+  // const users = await User.find({ username: { $regex: "Manoj", $options: "i" } });
+  // Get the 5 users document per page
+  // const users = await User.find().limit(5).skip(5);
+
+  const resultPerPage = 5;
+  const userCount = await User.countDocuments();
+
+  // Step 1: Set both in class ApiFeatures(which collection, what query)
+  const apiFeatures = new ApiFeatures(User.find(), req.query);
+
+  // Step 2: Get the user collection from DB
+  const users = await apiFeatures
+    .searchUser()
+    .filterUser()
+    .paginateUser(resultPerPage).queryObject;
+
+  // Step 3: Return response to ADMIN
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { users, userCount, resultPerPage },
+        "Users fetched successfully"
+      )
+    );
+});
+
+const getSingleUserByID = asyncHandler(async (req, res) => {
+  // Step 1: get user id from URL
+  const { id } = req.params;
+
+  // Step 2: get user from DB
+  const user = await User.findById({ _id: id });
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Step 3: return response to ADMIN
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User fetched successfully"));
+});
+
+const updateSingleUserByID = asyncHandler(async (req, res) => {
+  // Step 1: get user id from URL
+  const { id } = req.params;
+
+  // Step 2: get user from DB
+  const user = await User.findById({ _id: id });
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  // Step 3: get user details for updating (Admin want to update the users role and email)
+  const { email, role } = req.body;
+  if (!email || !role) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Step 4: update the modified fields in DB
+  user.email = email;
+  user.role = role;
+  user.save({ validateBeforeSave: false });
+
+  // Step 5: return response to ADMIN
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User details updated successfully"));
+});
+
+const deleteSingleUserByID = asyncHandler(async (req, res) => {
+  // Step 1: get user id from URL
+  const { id } = req.params;
+
+  // Step 2: get user from DB
+  const user = await User.findById({ _id: id });
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  // Step 2: delete avatar and cover image from cloudinary
+  await deleteFromCloudinary(user?.avatar);
+  await deleteFromCloudinary(user?.coverImage);
+
+  // Step 3: delete user from DB
+  await User.deleteOne({ _id: id });
+
+  // Step 4: return response to ADMIN
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "User deleted successfully"));
+});
+
+const blockAndUnblockSingleUserByID = asyncHandler(async (req, res) => {
+  // Step 1: Get user id from URL
+  const { id } = req.params;
+
+  // Step 2: Get user from DB
+  const user = await User.findById({ _id: id });
+  if (!user) {
+    throw new ApiError(404, "User does not exist");
+  }
+
+  // Step 3: Toggle the field isBlocked
+  user.isBlocked = !user.isBlocked;
+  let message = "";
+
+  if (user.isBlocked) {
+    // User is being blocked, set blockedUntil to two days from now
+    user.blockedUntil = Date.now() + 2 * 24 * 60 * 60 * 1000; // 2 days
+    message = "User blocked successfully";
+  } else {
+    // User is being unblocked, set blockedUntil to undefined
+    user.blockedUntil = undefined;
+    message = "User unblocked successfully";
+  }
+
+  // Step 4: Save the user changes
+  await user.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to ADMIN
+  return res.status(200).json(new ApiResponse(200, user, message));
 });
 
 export {
@@ -845,4 +1000,10 @@ export {
   deleteUserAvatar,
   deleteUserCoverImage,
   deleteUserProfile,
+  getAllUsers,
+  getSingleUserByID,
+  updateSingleUserByID,
+  deleteSingleUserByID,
+  blockAndUnblockSingleUserByID,
+  unblockUser,
 };
