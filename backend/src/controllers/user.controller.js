@@ -4,13 +4,14 @@ import {
   deleteFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
-import { User } from "../models/user.model.js";
+import { User } from "../models/auth/user.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
 import { ApiFeatures } from "../utils/apiFeatures.js";
 import { BLOCK_EXPIRY } from "../constants.js";
+import mongoose from "mongoose";
 
 // Method to generate the access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -981,6 +982,83 @@ const blockAndUnblockSingleUserByID = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, user, message));
 });
 
+// User routes for portfolio
+const getPortfolioAsOwner = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user?._id;
+
+  // Step 2: write the mongodb pipline to get the portfolio
+  const portfolio = await User.aggregate([
+    {
+      // Stage 1: Get a particular user from DB Collection: users
+      $match: {
+        _id: new mongoose.Types.ObjectId(userID),
+      },
+    },
+    {
+      // Stage 2: Add two collections portfolios(foreign) and users(input) for portfolio as result
+      $lookup: {
+        from: "portfolios",
+        localField: "_id",
+        foreignField: "owner",
+        as: "portfolio",
+        pipeline: [
+          // Sub Pipeline For Getting The Owner Details [portfolios(input) and users(foreign)]
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    fullName: 1,
+                    email: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      // Stage 3: convert array field "portfolio" into object field "portfolio"
+      $addFields: {
+        portfolio: {
+          $first: "$portfolio",
+        },
+      },
+    },
+    {
+      // State 4: Return the specific fields from the collcetion: users
+      $project: {
+        _id: 0,
+        portfolio: 1,
+      },
+    },
+  ]);
+
+  // console.log("Portfolio: ", portfolio);
+  if (!portfolio?.length) {
+    throw new ApiError(404, "Portfolio does not exists");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, portfolio[0], "Portfolio fetched successfully"));
+});
+
 export {
   registerUser,
   sendEmailVerificationLink,
@@ -1006,4 +1084,5 @@ export {
   deleteSingleUserByID,
   blockAndUnblockSingleUserByID,
   unblockUser,
+  getPortfolioAsOwner,
 };

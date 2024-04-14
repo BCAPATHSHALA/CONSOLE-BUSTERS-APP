@@ -24,13 +24,15 @@ app.use(cookieParser());
 
 // Import the routes
 import userRouter from "./routes/user.routes.js";
+import portfolioRouter from "./routes/portfolio.routes.js";
 
 // Routes declaration middlewares
 app.use("/api/v1", userRouter);
+app.use("/api/v1", portfolioRouter);
 
 // Time Scheduler 1: Automatically unblock users after 2 days
 import nodeCron from "node-cron";
-import { User } from "./models/user.model.js";
+import { User } from "./models/auth/user.model.js";
 import { unblockUser } from "./controllers/user.controller.js";
 
 // Time schedule to run every day at midnight

@@ -23,6 +23,7 @@ import {
   updateSingleUserByID,
   deleteSingleUserByID,
   blockAndUnblockSingleUserByID,
+  getPortfolioAsOwner,
 } from "../controllers/user.controller.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { authorizedAdmin, verifyJWT } from "../middleware/auth.middleware.js";
@@ -77,6 +78,10 @@ router
   .route("/users/delete-cover-image")
   .delete(verifyJWT, deleteUserCoverImage);
 router.route("/users/delete-profile").delete(verifyJWT, deleteUserProfile);
+
+router
+  .route("/users/get-portfolio-as-owner")
+  .get(verifyJWT, getPortfolioAsOwner);
 
 // Admin secure routes api/v1/users/admin
 router.route("/admin/users").get(verifyJWT, authorizedAdmin, getAllUsers);

@@ -4,7 +4,22 @@ import mongoose from "mongoose";
 const skillSchemaObject = {
   constructionOfSkill: {
     type: String,
-    enum: ["Programming Language", "Frameworks & Libraries"],
+    enum: [
+      "Programming Language",
+      "Frameworks & Libraries",
+      "Databases",
+      "Networking",
+      "Security",
+      "Cloud Computing",
+      "Operating Systems",
+      "Data Structures & Algorithms",
+      "Web Development",
+      "Mobile Development",
+      "Machine Learning & AI",
+      "DevOps",
+      "Testing",
+      "UI/UX Design",
+    ],
     required: [true, "Please enter your skill construction"],
   },
   nameOfSkill: {
@@ -13,7 +28,7 @@ const skillSchemaObject = {
   },
   levelOfSkill: {
     type: String,
-    enum: ["Proficient", "Intermediate", "Beginner"],
+    enum: ["Proficient", "Intermediate", "Beginner", "Advanced"],
     required: [true, "Please enter your skill level"],
   },
 };
@@ -43,7 +58,7 @@ const portfolioSchema = new mongoose.Schema(
     ],
     home: {
       type: String,
-      required: [true, "Please enter your welcome message"],
+      default: "Welcome to Console Busters",
     },
     resume: {
       type: String, // Cloudinary URL

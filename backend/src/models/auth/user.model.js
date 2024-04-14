@@ -27,10 +27,6 @@ const userSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    portfolio: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Portfolio",
-    },
     avatar: {
       type: String, // Cloudinary URL
     },
