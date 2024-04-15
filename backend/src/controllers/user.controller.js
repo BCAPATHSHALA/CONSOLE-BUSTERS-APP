@@ -1023,10 +1023,36 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
               ],
             },
           },
+          // [portfolios(input) and aboutMe(foreign)]
+          {
+            $lookup: {
+              from: "aboutmes",
+              localField: "aboutMe",
+              foreignField: "_id",
+              as: "aboutMe",
+              pipeline: [
+                {
+                  $project: {
+                    education: 1,
+                    content: 1,
+                    hobbies: 1,
+                    profileImage: 1,
+                    gender: 1,
+                    workExperience: 1,
+                    socialLinks: 1,
+                    _id: 1,
+                  },
+                },
+              ],
+            },
+          },
           {
             $addFields: {
               owner: {
                 $first: "$owner",
+              },
+              aboutMe: {
+                $first: "$aboutMe",
               },
             },
           },
@@ -1050,7 +1076,7 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
     },
   ]);
 
-  // console.log("Portfolio: ", portfolio);
+  console.log("Portfolio: ", portfolio);
   if (!portfolio?.length) {
     throw new ApiError(404, "Portfolio does not exists");
   }

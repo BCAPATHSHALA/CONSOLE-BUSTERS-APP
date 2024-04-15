@@ -39,12 +39,10 @@ const workExperienceSchema = {
     enum: ["full time", "part time", "internship", "working", "freelancer"],
     default: "working",
   },
-  responsibilities: [
-    {
-      type: String,
-      required: [true, "Enter your responsibilities at company"],
-    },
-  ],
+  responsibilities: {
+    type: String,
+    required: [true, "Enter your responsibilities at company"],
+  },
 };
 
 // 📝 Social Links schema object
@@ -59,6 +57,14 @@ const socialLinksSchema = {
   },
 };
 
+// 📝 Hobby schema object
+const hobbySchema = {
+  hobby: {
+    type: String,
+    trim: true,
+  },
+};
+
 const aboutMeSchema = new mongoose.Schema(
   {
     education: [educationSchema],
@@ -66,12 +72,7 @@ const aboutMeSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please write about yourself in short"],
     },
-    hobbies: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
+    hobbies: [hobbySchema],
     tagline: {
       type: String,
       trim: true,
