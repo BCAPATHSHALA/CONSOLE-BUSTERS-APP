@@ -39,7 +39,7 @@ const portfolioSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "AboutMe",
     },
-    skill: [skillSchemaObject],
+    skills: [skillSchemaObject],
     articles: [
       {
         type: mongoose.Schema.Types.ObjectId,

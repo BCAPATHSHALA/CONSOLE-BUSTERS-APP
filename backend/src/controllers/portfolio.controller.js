@@ -7,6 +7,8 @@ import {
 } from "../utils/cloudinary.js";
 import { Portfolio } from "../models/portfolio/portfolio.model.js";
 import { AboutMe } from "../models/portfolio/aboutme.model.js";
+import { Project } from "../models/portfolio/project.model.js";
+import fs from "fs";
 
 // Level 1: Portfolio
 const createPortfolio = asyncHandler(async (req, res) => {
@@ -16,7 +18,7 @@ const createPortfolio = asyncHandler(async (req, res) => {
   // Step 2: Find the user's portfolio based on their ID
   const portfolio = await Portfolio.findOne({ owner: userID });
 
-  // If the portfolio does not exist, create the portfolio first time
+  // If the portfolio does not exist, create it for the first time
   if (!portfolio) {
     portfolio = await Portfolio.create({
       owner: userID,
@@ -66,7 +68,7 @@ const createHomeWelcomeMessage = asyncHandler(async (req, res) => {
     );
   }
 
-  // Step 4: set welcome message
+  // Step 4: Set the home welcome message
   await Portfolio.findByIdAndUpdate(
     portfolio._id,
     {
@@ -89,19 +91,19 @@ const uploadResume = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user._id;
 
-  // Step 2: get a local path of resume file
+  // Step 2: Get the local path of the resume file
   const resumeLocalPath = req.file?.path;
   if (!resumeLocalPath) {
     throw new ApiError(400, "Resume file is missing");
   }
 
-  // Step 3: upload resume file from local disk to cloudinary
+  // Step 3: Upload the resume file from the local disk to cloudinary
   const resume = await uploadOnCloudinary(resumeLocalPath);
   if (!resume.url) {
     throw new ApiError(400, "Error while uploading the resume");
   }
 
-  // Step 4: Find the user's portfolio based on their ID to upload the resume
+  // Step 4: Find the user's portfolio based on their ID and upload the resume
   const portfolio = await Portfolio.findOne({ owner: userID });
   portfolio.resume = resume.url;
   await portfolio.save({ validateBeforeSave: false });
@@ -116,13 +118,13 @@ const updateResume = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user._id;
 
-  // Step 2: get a local path of new resume file
+  // Step 2: Get the local path of the new resume file
   const newResumeLocalPath = req.file?.path;
   if (!newResumeLocalPath) {
     throw new ApiError(400, "Resume file is missing");
   }
 
-  // Step 3: upload resume file from local disk to cloudinary
+  // Step 3: Upload the resume file from the local disk to cloudinary
   const resume = await uploadOnCloudinary(newResumeLocalPath);
   if (!resume.url) {
     throw new ApiError(400, "Error while updating the resume");
@@ -131,17 +133,17 @@ const updateResume = asyncHandler(async (req, res) => {
   // Step 4: Find the user's portfolio based on their ID
   const portfolio = await Portfolio.findOne({ owner: userID });
 
-  // Save old file url before updating with new file to delete the file from cloudinary
+  // Save the old resume URL before updating with the new file to delete the file from cloudinary
   const oldResume = await Portfolio.findOne({ owner: userID });
 
-  // update the portfolio with resume field
+  // Step 5: Update the portfolio with the new resume field
   portfolio.resume = resume.url;
   await portfolio.save({ validateBeforeSave: false });
 
-  // Step 5: delete old resume file from cloudinary
+  // Step 6: Delete the old resume file from cloudinary
   await deleteFromCloudinary(oldResume.resume);
 
-  // Step 6: Return response to the user
+  // Step 7: Return response to the user
   return res
     .status(201)
     .json(new ApiResponse(201, {}, "Resume updated successfully"));
@@ -151,18 +153,18 @@ const deleteResume = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user._id;
 
-  // Step 2: update the portfolio with resume field
+  // Step 2: Find the user's portfolio and update the resume field
   const portfolio = await Portfolio.findOne({ owner: userID });
 
-  // Save file url before updating with resume = "" to delete the file from cloudinary
+  // Save the old resume URL before updating with an empty string to delete the file from cloudinary
   const oldResume = await Portfolio.findOne({ owner: userID });
   portfolio.resume = "";
   await portfolio.save({ validateBeforeSave: false });
 
-  // Step 3: delete exist resume file from cloudinary
+  // Step 3: Delete the existing resume file from cloudinary
   await deleteFromCloudinary(oldResume.resume);
 
-  // Step 4: return response to the user
+  // Step 4: Return response to the user
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Resume deleted successfully"));
@@ -175,7 +177,7 @@ const addSkills = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { constructionOfSkill, nameOfSkill, levelOfSkill } = req.body;
 
-  // Step 3: validation for not empty fields
+  // Step 3: Validation for not empty fields
   if (
     [constructionOfSkill, nameOfSkill, levelOfSkill].some(
       (field) => field?.trim() === ""
@@ -184,11 +186,11 @@ const addSkills = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Step 4: find the user's portfolio based on their ID
+  // Step 4: Find the user's portfolio based on their ID
   const portfolio = await Portfolio.findOne({ owner: userID });
 
   // Todo: can not add the duplicate skills
-  const isDuplicateSkill = portfolio.skill.some(
+  const isDuplicateSkill = portfolio.skills.some(
     (skill) => skill.nameOfSkill.trim() === nameOfSkill.trim()
   );
   if (isDuplicateSkill) {
@@ -196,7 +198,7 @@ const addSkills = asyncHandler(async (req, res) => {
   }
 
   // Step 5: Add the new skill to the portfolio
-  portfolio.skill.push({
+  portfolio.skills.push({
     constructionOfSkill,
     nameOfSkill,
     levelOfSkill,
@@ -210,6 +212,16 @@ const addSkills = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, {}, "Skill added successfully"));
 });
 
+const updateHomeWelcomeMessage= asyncHandler(async (req, res) => {});
+const deleteHomeWelcomeMessage= asyncHandler(async (req, res) => {});
+
+const updateSkillById= asyncHandler(async (req, res) => {});
+const deleteSkillById= asyncHandler(async (req, res) => {});
+
+/*
+TODO 1: updateHomeWelcomeMessage, deleteHomeWelcomeMessage, updateSkillById, deleteSkillById
+*/
+
 // Level 2: AboutMe
 const createAboutMe = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
@@ -219,12 +231,12 @@ const createAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { content, tagline, gender } = req.body;
 
-  // Step 3: validation for not empty fields
+  // Step 3: Validation for not empty fields
   if (content.trim() === "") {
     throw new ApiError(400, "Please write about yourself in short");
   }
 
-  // Step 4: upload the profile image from local server to cloudinary
+  // Step 4: Upload the profile image from local server to cloudinary
   const profileImageLocalPath = req.file?.path;
   if (!profileImageLocalPath) {
     throw new ApiError(400, "Profile image file is missing");
@@ -235,7 +247,7 @@ const createAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Error while uploading the profile image");
   }
 
-  // Step 6: create aboutMe object
+  // Step 5: Check if aboutMe already exists
   let aboutMe;
   if (portfolio.aboutMe === undefined) {
     // Create about me first time
@@ -250,7 +262,7 @@ const createAboutMe = asyncHandler(async (req, res) => {
       throw new ApiError(500, "Something went wrong while adding about me");
     }
 
-    // join aboutMe to the user's portfolio
+    // Join aboutMe to the user's portfolio
     portfolio.aboutMe = aboutMe._id;
     await portfolio.save();
   } else {
@@ -258,6 +270,7 @@ const createAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(409, "AboutMe is already created");
   }
 
+  // Step 7: Return response to the user
   return res
     .status(201)
     .json(new ApiResponse(201, {}, "AboutMe added successfully"));
@@ -271,11 +284,12 @@ const addHobbiesInAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { hobby } = req.body;
 
+  // Step 3: Validation for not empty fields
   if (!hobby || hobby.trim() === "") {
     throw new ApiError(400, "Hobby field is required");
   }
 
-  // Step 3: update aboutMe via hobbies
+  // Step 4: Update aboutMe via hobbies
   const aboutMeID = portfolio?.aboutMe;
   if (aboutMeID === undefined) {
     throw new Error("User's about me information not found in portfolio");
@@ -294,11 +308,11 @@ const addHobbiesInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(409, `${hobby} already added`);
   }
 
-  // Step 4: Add the new hobby to aboutMe
+  // Step 5: Add the new hobby to aboutMe
   aboutMe.hobbies.push({ hobby });
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 5: Return the response to the user
+  // Step 6: Return the response to the user
   return res
     .status(201)
     .json(new ApiResponse(201, {}, "Hobby added successfully"));
@@ -312,11 +326,12 @@ const addSocialLinksInAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { platform, url } = req.body;
 
+  // Step 3: Validation for not empty fields
   if ([platform, url].some((field) => field?.trim() === "")) {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Step 3: update aboutMe via social links
+  // Step 4: Update aboutMe via social links
   const aboutMeID = portfolio?.aboutMe;
   if (aboutMeID === undefined) {
     throw new Error("User's about me information not found in portfolio");
@@ -335,11 +350,11 @@ const addSocialLinksInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(409, `${platform} already added`);
   }
 
-  // Step 4: Add the new platform to aboutMe
+  // Step 5: Add the new platform to aboutMe
   aboutMe.socialLinks.push({ platform, url });
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 5: Return the response to the user
+  // Step 6: Return the response to the user
   return res
     .status(201)
     .json(new ApiResponse(201, {}, `${platform} added successfully`));
@@ -353,15 +368,16 @@ const addWorkExperienceInAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { company, position, startTime, endTime, responsibilities } = req.body;
 
+  // Step 3: Validation for not empty fields
   if (
-    [company, position, startTime, endTime, responsibilities].some(
+    [company, position, startTime, responsibilities].some(
       (field) => field?.trim() === ""
     )
   ) {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Step 3: update aboutMe via work experience
+  // Step 4: Update aboutMe via work experience
   const aboutMeID = portfolio?.aboutMe;
   if (aboutMeID === undefined) {
     throw new Error("User's about me information not found in portfolio");
@@ -369,17 +385,17 @@ const addWorkExperienceInAboutMe = asyncHandler(async (req, res) => {
 
   const aboutMe = await AboutMe.findById(aboutMeID);
 
-  // Step 4: Add the new work experience to aboutMe
+  // Step 5: Add the new work experience to aboutMe
   aboutMe.workExperience.push({
     company,
     position,
     startTime,
-    endTime,
+    endTime: endTime || "working",
     responsibilities,
   });
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 5: Return the response to the user
+  // Step 6: Return the response to the user
   return res
     .status(201)
     .json(
@@ -395,6 +411,7 @@ const addEducationInAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { institution, degree, fieldOfStudy, graduationYear } = req.body;
 
+  // Step 3: Validation for not empty fields
   if (
     [institution, degree, fieldOfStudy, graduationYear].some(
       (field) => field?.trim() === ""
@@ -403,7 +420,7 @@ const addEducationInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Step 3: update aboutMe via education
+  // Step 4: Update aboutMe via education
   const aboutMeID = portfolio?.aboutMe;
   if (aboutMeID === undefined) {
     throw new Error("User's about me information not found in portfolio");
@@ -411,7 +428,7 @@ const addEducationInAboutMe = asyncHandler(async (req, res) => {
 
   const aboutMe = await AboutMe.findById(aboutMeID);
 
-  // Todo: can not add the duplicate degree
+  // Todo: cannot add duplicate degree
   const isDuplicateDegree = aboutMe.education.some(
     (existingDegree) =>
       existingDegree &&
@@ -422,11 +439,11 @@ const addEducationInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(409, `${degree} already added`);
   }
 
-  // Step 4: Add the new education to aboutMe
+  // Step 5: Add the new education to aboutMe
   aboutMe.education.push({ institution, degree, fieldOfStudy, graduationYear });
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 5: Return the response to the user
+  // Step 6: Return the response to the user
   return res
     .status(201)
     .json(new ApiResponse(201, {}, `${degree} added successfully`));
@@ -440,7 +457,7 @@ const updateAboutMe = asyncHandler(async (req, res) => {
   // Step 2: Retrieve data from the request body
   const { content, tagline, gender } = req.body;
 
-  // Step 3: validation for not empty fields
+  // Step 3: Validation for not empty fields
   if (!content || !tagline || !gender) {
     throw new ApiError(400, "All fields are required");
   }
@@ -459,7 +476,7 @@ const updateAboutMe = asyncHandler(async (req, res) => {
     { new: true }
   );
 
-  // Step 3: return response to the user
+  // Step 5: Return response to the user
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "About me details updated successfully"));
@@ -470,13 +487,13 @@ const updateProfileImageInAboutMe = asyncHandler(async (req, res) => {
   const userID = req.user._id;
   const portfolio = await Portfolio.findOne({ owner: userID });
 
-  // Step 2: get a local path of new profile image file
+  // Step 2: Get the local path of the new profile image file
   const newProfileImageLocalPath = req.file?.path;
   if (!newProfileImageLocalPath) {
     throw new ApiError(400, "Profile image file is missing");
   }
 
-  // Step 3: upload profile image file from local disk to cloudinary
+  // Step 3: Upload profile image file from local disk to Cloudinary
   const profileImage = await uploadOnCloudinary(newProfileImageLocalPath);
   if (!profileImage.url) {
     throw new ApiError(400, "Error while updating the profile image");
@@ -486,14 +503,14 @@ const updateProfileImageInAboutMe = asyncHandler(async (req, res) => {
   const aboutMeID = portfolio.aboutMe.toString();
   const aboutMe = await AboutMe.findOne({ _id: aboutMeID });
 
-  // Save old file url before updating with new file to delete the file from cloudinary
+  // Save old file URL before updating with the new file to delete the file from Cloudinary
   const oldProfileImage = await AboutMe.findOne({ _id: aboutMeID });
 
-  // update the portfolio with profileImage field
+  // Update the portfolio with the profileImage field
   aboutMe.profileImage = profileImage.url;
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 5: delete old profileImage file from cloudinary
+  // Step 5: Delete old profileImage file from Cloudinary
   await deleteFromCloudinary(oldProfileImage.profileImage);
 
   // Step 6: Return response to the user
@@ -507,20 +524,21 @@ const deleteProfileImageInAboutMe = asyncHandler(async (req, res) => {
   const userID = req.user._id;
   const portfolio = await Portfolio.findOne({ owner: userID });
 
-  // Step 4: Find the user's portfolio aboutMe based on their ID
+  // Step 2: Find the user's portfolio aboutMe based on their ID
   const aboutMeID = portfolio.aboutMe.toString();
   const aboutMe = await AboutMe.findOne({ _id: aboutMeID });
 
-  // Save old file url before updating with profileImage = "" to delete the file from cloudinary
+  // Save old file URL before updating with profileImage = "" to delete the file from Cloudinary
   const oldProfileImage = await AboutMe.findOne({ _id: aboutMeID });
 
+  // Step 3: Update profileImage field to delete the profile image
   aboutMe.profileImage = "";
   await aboutMe.save({ validateBeforeSave: false });
 
-  // Step 3: delete exist profile image file from cloudinary
+  // Step 4: Delete existing profile image file from Cloudinary
   await deleteFromCloudinary(oldProfileImage.profileImage);
 
-  // Step 4: return response to the user
+  // Step 5: Return response to the user
   return res
     .status(200)
     .json(new ApiResponse(200, {}, "Profile image deleted successfully"));
@@ -693,11 +711,11 @@ const updateSocialLinkByIDInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required");
   }
 
-  // Step 4: Find the aboutMe document and update the work experience
+  // Step 4: Find the aboutMe document and update the social link
   const aboutMeID = portfolio.aboutMe;
   const aboutMe = await AboutMe.findById(aboutMeID);
 
-  // Find the index of the social links with the given ID
+  // Find the index of the social link with the given ID
   const socialLinkIndex = aboutMe.socialLinks.findIndex(
     (socialLink) => socialLink._id.toString() === socialLinkId
   );
@@ -706,7 +724,7 @@ const updateSocialLinkByIDInAboutMe = asyncHandler(async (req, res) => {
     throw new ApiError(404, `${newPlatform}, social platform not found`);
   }
 
-  // Update the social links at the found index
+  // Update the social link at the found index
   const newSocialLink = {
     platform: newPlatform,
     url: newUrl,
@@ -829,7 +847,7 @@ const deleteWorkExperienceByIDInAboutMe = asyncHandler(async (req, res) => {
   const aboutMeID = portfolio.aboutMe;
   const aboutMe = await AboutMe.findById(aboutMeID);
 
-  // Find the index of the social link with the given ID
+  // Find the index of the work experience with the given ID
   const workExpIndex = aboutMe.workExperience.findIndex(
     (workExp) => workExp._id.toString() === workExpId
   );
@@ -847,6 +865,404 @@ const deleteWorkExperienceByIDInAboutMe = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Work experience deleted successfully"));
 });
+
+// Level 3: Project
+const addProject = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { title, description, githubLink, liveLink, startTime, endTime } =
+    req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [title, description, githubLink, startTime].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Todo: Parse startTime to Date type
+  const [day, month, year] = startTime.split("-").map(Number);
+  const parsedStartTime = new Date(year, month - 1, day);
+
+  // Step 4: Create the project object in the database
+  const project = await Project.create({
+    title,
+    description,
+    githubLink,
+    liveLink: liveLink || "",
+    startTime: parsedStartTime,
+    endTime: endTime || "completed",
+  });
+
+  if (!project) {
+    throw new ApiError(500, "Something went wrong while adding project");
+  }
+
+  // Join project to the user's portfolio
+  portfolio.projects.push(project._id);
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(201, project, ` ${title} project created successfully`)
+    );
+});
+
+const updateProjectById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { title, description, githubLink, liveLink, startTime, endTime } =
+    req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [title, description, githubLink, startTime].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Todo: Parse startTime to Date type
+  const [day, month, year] = startTime.split("-").map(Number);
+  const parsedStartTime = new Date(year, month - 1, day);
+
+  // Step 4: Get the existing project to update the specific fields
+  const project = await Project.findByIdAndUpdate(
+    projectID,
+    {
+      $set: {
+        title,
+        description,
+        githubLink,
+        liveLink: liveLink || "",
+        startTime: parsedStartTime,
+        endTime: endTime || "completed",
+      },
+    },
+    { new: true }
+  );
+
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, `${title} project updated successfully`));
+});
+
+const getProjectById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Find project from the database
+  const project = await Project.findById(projectID);
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Project fetched successfully"));
+});
+
+const deleteProjectById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Find project from the database
+  const project = await Project.findById(projectID);
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  // Step 3: Delete the existing project
+  await Project.findByIdAndDelete(projectID);
+
+  // Step 4: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Project deleted successfully"));
+});
+
+const addProjectTechStackById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { techStack } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (!techStack) {
+    throw new ApiError(400, "Tech stack field is required");
+  }
+
+  // Step 4: Find the project based on its ID
+  const project = await Project.findById(projectID);
+
+  // Todo: Cannot add the duplicate techStack
+  const isDuplicateTechStack = project.techStacks.some(
+    (field) => field.techStack.trim() === techStack.trim()
+  );
+  if (isDuplicateTechStack) {
+    throw new ApiError(409, `${techStack} allready added`);
+  }
+
+  // Step 5: Add the new techStack to the project
+  project.techStacks.push({
+    techStack,
+  });
+
+  await project.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, `${techStack} added successfully`));
+});
+
+const updateProjectTechStackById = asyncHandler(async (req, res) => {
+  // Step 1: Get the techStack's ID from params
+  const { techID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { newTechStack } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (!newTechStack) {
+    throw new ApiError(400, "New tech stack field is required");
+  }
+
+  // Step 4: Find the project containing the specified tech stack
+  const project = await Project.findOne({ "techStacks._id": techID });
+
+  if (!project) {
+    throw new ApiError(404, "Project or tech stack not found");
+  }
+
+  // Step 5: Find the index of the tech stack to update
+  const techStackIndex = project.techStacks.findIndex((stack) => {
+    return stack._id.toString() === techID;
+  });
+
+  // Step 6: Update the tech stack if found
+  if (techStackIndex !== -1) {
+    project.techStacks[techStackIndex].techStack = newTechStack;
+    await project.save();
+  } else {
+    throw new ApiError(404, "Tech Stack not found in Project");
+  }
+
+  // Step 7: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, `${newTechStack} updated successfully`));
+});
+
+const deleteProjectTechStackById = asyncHandler(async (req, res) => {
+  // Step 1: Get the techStack's ID from params
+  const { techID } = req.params;
+
+  // Step 2: Find the project containing the specified tech stack
+  const project = await Project.findOne({ "techStacks._id": techID });
+
+  if (!project) {
+    throw new ApiError(404, "Project or tech stack not found");
+  }
+
+  // Step 3: Filter out the tech stack to delete from the techStacks array
+  project.techStacks = project.techStacks.filter(
+    (stack) => stack._id.toString() !== techID
+  );
+
+  // Step 5: Save the updated project
+  await project.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, `Tech stack deleted successfully`));
+});
+
+const uploadProjectImagesById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Check if images are uploaded on the server
+  if (!req.files || req.files.length === 0) {
+    throw new ApiError(400, "No image files uploaded");
+  }
+
+  const cloudinaryImagesURLArray = [];
+  if (req.files && req.files.length <= 2) {
+    // We want to upload only two images on the local server
+    for (let i = 0; i < req.files.length; i++) {
+      let localPathOfImage = req.files[i]?.path;
+      const cloudinaryImages = await uploadOnCloudinary(localPathOfImage);
+      // Create the images URL array
+      cloudinaryImagesURLArray.push(cloudinaryImages?.url);
+    }
+  } else {
+    // If the user tries to upload more than 2 images
+    // We need to take two actions
+    // Action 1: remove all images from our local server
+    for (let i = 0; i < req.files.length; i++) {
+      fs.unlinkSync(req.files[i].path);
+    }
+    // Action 2: throw an error message to the user
+    throw new ApiError(400, "Maximum of two images are allowed");
+  }
+
+  // Step 3: Set cloudinary images to the DB
+  const project = await Project.findById(projectID);
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  for (let i = 0; i < cloudinaryImagesURLArray.length; i++) {
+    // Set cloudinary images URL to DB when the images field is empty
+    if (project?.images.length >= 0 && project?.images.length < 2) {
+      project.images.push({ image: cloudinaryImagesURLArray[i] });
+    } else {
+      // If a project in the DB already contains two images
+      // We need to take two actions
+      // Action 1: remove images from Cloudinary
+      for (let i = 0; i < 2; i++) {
+        await deleteFromCloudinary(cloudinaryImagesURLArray[i]);
+      }
+      // Action 2: return an error message to the user
+      throw new ApiError(422, "Only two images allowed per project");
+    }
+  }
+  await project.save({ validateBeforeSave: false });
+
+  // Step 4: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, project.images, "Images uploaded successfully"));
+});
+
+const updateProjectImageById = asyncHandler(async (req, res) => {
+  // Step 1: Get the imageID from params (It's a MongoDB ID)
+  const { imageID } = req.params;
+
+  // Step 2: Check if image is uploaded on the server
+  if (!req.file || !req.file?.path) {
+    throw new ApiError(400, "No image file uploaded");
+  }
+
+  // Step 3: Upload new image file from local disk to Cloudinary
+  const newImage = await uploadOnCloudinary(req.file.path);
+  if (!newImage || !newImage.url) {
+    throw new ApiError(400, "Error while updating new image");
+  }
+
+  // Step 4: Find the project based on imageID
+  const project = await Project.findOne({ "images._id": imageID });
+
+  // Step 5: Save old file URL before updating with new file to delete the file from Cloudinary
+  const oldProjectImage = await Project.findOne({ "images._id": imageID });
+
+  // Step 6: Find the index of the given imageID
+  const oldImageIndex = project.images.findIndex(
+    (image) => image._id.toString() === imageID
+  );
+
+  if (oldImageIndex === -1) {
+    throw new ApiError(404, "Old image not found");
+  }
+
+  // Step 7: Update the project with newImage
+  project.images[oldImageIndex].image = newImage?.url;
+  await project.save({ validateBeforeSave: false });
+
+  // Step 8: Delete old image file from Cloudinary
+  await deleteFromCloudinary(oldProjectImage.images[oldImageIndex].image);
+
+  // Step 9: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Image updated successfully"));
+});
+
+const deleteProjectImageById = asyncHandler(async (req, res) => {
+  // Step 1: Get the imageID from params (It's a MongoDB ID)
+  const { imageID } = req.params;
+
+  // Step 2: Find the project based on imageID
+  const project = await Project.findOne({ "images._id": imageID });
+
+  // Step 3: Save old file URL before deleting old file in DB to delete the file from Cloudinary
+  const oldProjectImage = await Project.findOne({ "images._id": imageID });
+
+  // Step 4: Find the index of the given imageID
+  const oldImageIndex = project.images.findIndex(
+    (image) => image._id.toString() === imageID
+  );
+
+  if (oldImageIndex === -1) {
+    throw new ApiError(404, "Old image not found");
+  }
+
+  // Step 5: Remove the old image from the images array in the project document
+  project.images.splice(oldImageIndex, 1);
+
+  // Step 6: Save the updated project document
+  await project.save({ validateBeforeSave: false });
+
+  // Step 7: Delete old image file from Cloudinary
+  await deleteFromCloudinary(oldProjectImage.images[oldImageIndex].image);
+
+  // Step 8: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Image deleted successfully"));
+});
+
+const uploadProjectVideoById = asyncHandler(async (req, res) => {});
+const updateProjectVideoById = asyncHandler(async (req, res) => {});
+const deleteProjectVideoById = asyncHandler(async (req, res) => {});
+
+const uploadProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
+const updateProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
+const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
+
+/*
+ * addProject✔️
+ * updateProjectById✔️ -> title, description, githubLink, liveLink, startTime, endTime
+ * getProjectById✔️
+ * delteProjectById✔️
+ 
+ * addProjectTechStackById✔️
+ * updateProjectTechStackById✔️
+ * deleteProjectTechStackById✔️
+ 
+ * uploadProjectImagesById✔️
+ * updateProjectImageById✔️
+ * deleteProjectImageById✔️
+ 
+ * uploadProjectVideoById
+ * updateProjectVideoById
+ * deleteProjectVideoById
+ 
+ * uploadProjectDocumentationPDFById
+ * updateProjectDocumentationPDFById
+ * deleteProjectDocumentationPDFById
+ 
+ * Write the aggregation pipiline to get project information
+ */
 
 export {
   createPortfolio,
@@ -871,4 +1287,14 @@ export {
   deleteSocialLinkByIDInAboutMe,
   updateWorkExperienceByIDInAboutMe,
   deleteWorkExperienceByIDInAboutMe,
+  addProject,
+  updateProjectById,
+  getProjectById,
+  deleteProjectById,
+  addProjectTechStackById,
+  updateProjectTechStackById,
+  deleteProjectTechStackById,
+  uploadProjectImagesById,
+  updateProjectImageById,
+  deleteProjectImageById,
 };

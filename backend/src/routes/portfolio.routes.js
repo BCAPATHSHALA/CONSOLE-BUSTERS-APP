@@ -4,6 +4,8 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
   addEducationInAboutMe,
   addHobbiesInAboutMe,
+  addProject,
+  addProjectTechStackById,
   addSkills,
   addSocialLinksInAboutMe,
   addWorkExperienceInAboutMe,
@@ -13,16 +15,24 @@ import {
   deleteEducationByIDInAboutMe,
   deleteHobbyByIDInAboutMe,
   deleteProfileImageInAboutMe,
+  deleteProjectById,
+  deleteProjectImageById,
+  deleteProjectTechStackById,
   deleteResume,
   deleteSocialLinkByIDInAboutMe,
   deleteWorkExperienceByIDInAboutMe,
+  getProjectById,
   updateAboutMe,
   updateEducationByIDInAboutMe,
   updateHobbyByIDInAboutMe,
   updateProfileImageInAboutMe,
+  updateProjectById,
+  updateProjectImageById,
+  updateProjectTechStackById,
   updateResume,
   updateSocialLinkByIDInAboutMe,
   updateWorkExperienceByIDInAboutMe,
+  uploadProjectImagesById,
   uploadResume,
 } from "../controllers/portfolio.controller.js";
 
@@ -107,5 +117,42 @@ router
 router
   .route("/users/portfolio/delete-work-experience/:workExpId")
   .delete(verifyJWT, deleteWorkExperienceByIDInAboutMe);
+
+router.route("/users/portfolio/add-project").post(verifyJWT, addProject);
+router
+  .route("/users/portfolio/update-project/:projectID")
+  .patch(verifyJWT, updateProjectById);
+
+router
+  .route("/users/portfolio/get-project/:projectID")
+  .get(verifyJWT, getProjectById);
+
+router
+  .route("/users/portfolio/delete-project/:projectID")
+  .delete(verifyJWT, deleteProjectById);
+
+router
+  .route("/users/portfolio/add-project-tech-stack/:projectID")
+  .post(verifyJWT, addProjectTechStackById);
+
+router
+  .route("/users/portfolio/update-project-tech-stack/:techID")
+  .patch(verifyJWT, updateProjectTechStackById);
+
+router
+  .route("/users/portfolio/delete-project-tech-stack/:techID")
+  .delete(verifyJWT, deleteProjectTechStackById);
+
+router
+  .route("/users/portfolio/add-project-images/:projectID")
+  .post(verifyJWT, upload.array("images"), uploadProjectImagesById);
+
+router
+  .route("/users/portfolio/update-project-image/:imageID")
+  .patch(verifyJWT, upload.single("images"), updateProjectImageById);
+
+router
+  .route("/users/portfolio/delete-project-image/:imageID")
+  .delete(verifyJWT, deleteProjectImageById);
 
 export default router;

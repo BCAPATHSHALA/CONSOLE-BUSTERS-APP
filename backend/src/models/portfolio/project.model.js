@@ -10,10 +10,12 @@ const projectSchema = new mongoose.Schema(
       type: String,
       required: [true, "Please describe project"],
     },
-    techStack: [
+    techStacks: [
       {
-        type: String,
-        required: [true, "Pleade enter used tech stacks"],
+        techStack: {
+          type: String,
+          required: [true, "Pleade enter used tech stacks"],
+        },
       },
     ],
     githubLink: {
@@ -25,6 +27,7 @@ const projectSchema = new mongoose.Schema(
     },
     startTime: {
       type: Date,
+      required: [true, "Enter your starting time of building project"],
     },
     endTime: {
       type: String,
@@ -33,7 +36,9 @@ const projectSchema = new mongoose.Schema(
     },
     images: [
       {
-        type: String, // Cloudinary URL
+        image: {
+          type: String, // Cloudinary URL
+        },
       },
     ],
     video: {
