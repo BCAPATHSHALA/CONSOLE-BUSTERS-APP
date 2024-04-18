@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../middleware/multer.middleware.js";
+import { upload, uploadVideo } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
   addEducationInAboutMe,
@@ -18,6 +18,7 @@ import {
   deleteProjectById,
   deleteProjectImageById,
   deleteProjectTechStackById,
+  deleteProjectVideoById,
   deleteResume,
   deleteSocialLinkByIDInAboutMe,
   deleteWorkExperienceByIDInAboutMe,
@@ -29,10 +30,12 @@ import {
   updateProjectById,
   updateProjectImageById,
   updateProjectTechStackById,
+  updateProjectVideoById,
   updateResume,
   updateSocialLinkByIDInAboutMe,
   updateWorkExperienceByIDInAboutMe,
   uploadProjectImagesById,
+  uploadProjectVideoById,
   uploadResume,
 } from "../controllers/portfolio.controller.js";
 
@@ -42,6 +45,7 @@ const router = express.Router();
 router
   .route("/users/portfolio/create-portfolio")
   .post(verifyJWT, createPortfolio);
+
 router
   .route("/users/portfolio/create-home-message")
   .post(verifyJWT, createHomeWelcomeMessage);
@@ -49,9 +53,11 @@ router
 router
   .route("/users/portfolio/upload-resume")
   .post(verifyJWT, upload.single("resume"), uploadResume);
+
 router
   .route("/users/portfolio/update-resume")
   .patch(verifyJWT, upload.single("resume"), updateResume);
+
 router.route("/users/portfolio/delete-resume").delete(verifyJWT, deleteResume);
 
 router.route("/users/portfolio/add-skills").post(verifyJWT, addSkills);
@@ -119,6 +125,7 @@ router
   .delete(verifyJWT, deleteWorkExperienceByIDInAboutMe);
 
 router.route("/users/portfolio/add-project").post(verifyJWT, addProject);
+
 router
   .route("/users/portfolio/update-project/:projectID")
   .patch(verifyJWT, updateProjectById);
@@ -144,7 +151,7 @@ router
   .delete(verifyJWT, deleteProjectTechStackById);
 
 router
-  .route("/users/portfolio/add-project-images/:projectID")
+  .route("/users/portfolio/upload-project-images/:projectID")
   .post(verifyJWT, upload.array("images"), uploadProjectImagesById);
 
 router
@@ -154,5 +161,17 @@ router
 router
   .route("/users/portfolio/delete-project-image/:imageID")
   .delete(verifyJWT, deleteProjectImageById);
+
+router
+  .route("/users/portfolio/upload-project-video/:projectID")
+  .post(verifyJWT, uploadVideo.single("demoVideo"), uploadProjectVideoById);
+
+router
+  .route("/users/portfolio/update-project-video/:projectID")
+  .patch(verifyJWT, uploadVideo.single("demoVideo"), updateProjectVideoById);
+
+router
+  .route("/users/portfolio/delete-project-video/:projectID")
+  .delete(verifyJWT, deleteProjectVideoById);
 
 export default router;

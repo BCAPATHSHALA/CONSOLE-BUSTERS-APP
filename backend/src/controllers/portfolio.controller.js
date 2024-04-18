@@ -3,12 +3,14 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import {
   deleteFromCloudinary,
+  deleteVideoFromCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { Portfolio } from "../models/portfolio/portfolio.model.js";
 import { AboutMe } from "../models/portfolio/aboutme.model.js";
 import { Project } from "../models/portfolio/project.model.js";
 import fs from "fs";
+import { validateVideoDuration } from "../utils/validator.js";
 
 // Level 1: Portfolio
 const createPortfolio = asyncHandler(async (req, res) => {
@@ -212,11 +214,11 @@ const addSkills = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, {}, "Skill added successfully"));
 });
 
-const updateHomeWelcomeMessage= asyncHandler(async (req, res) => {});
-const deleteHomeWelcomeMessage= asyncHandler(async (req, res) => {});
+const updateHomeWelcomeMessage = asyncHandler(async (req, res) => {});
+const deleteHomeWelcomeMessage = asyncHandler(async (req, res) => {});
 
-const updateSkillById= asyncHandler(async (req, res) => {});
-const deleteSkillById= asyncHandler(async (req, res) => {});
+const updateSkillById = asyncHandler(async (req, res) => {});
+const deleteSkillById = asyncHandler(async (req, res) => {});
 
 /*
 TODO 1: updateHomeWelcomeMessage, deleteHomeWelcomeMessage, updateSkillById, deleteSkillById
@@ -1231,14 +1233,152 @@ const deleteProjectImageById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, project, "Image deleted successfully"));
 });
 
-const uploadProjectVideoById = asyncHandler(async (req, res) => {});
-const updateProjectVideoById = asyncHandler(async (req, res) => {});
-const deleteProjectVideoById = asyncHandler(async (req, res) => {});
+const uploadProjectVideoById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  /*
+   Todo: We want to upload only one video with these conditions
+   * Condition 1: video size in MB is at most 10MB
+   * Condition 2: video duration is at most 3 minutes
+  */
+
+  // Step 2: Check if a file is uploaded to local server and it's a video
+  if (!req.file || !req.file?.mimetype.startsWith("video/")) {
+    // Remove uploaded file from local disk
+    fs.unlinkSync(req.file?.path);
+    throw new ApiError(400, "Please upload a video file");
+  }
+
+  // Step 3: Get the duration of the uploaded video and validate it
+  const videoPath = req.file?.path;
+  const isNotValidDuration = await validateVideoDuration(videoPath);
+
+  if (isNotValidDuration) {
+    // Remove uploaded video file from local disk
+    fs.unlinkSync(req.file?.path);
+    throw new ApiError(400, `Video duration should be at most 3 minutes`);
+  }
+
+  // Step 4: Find the project based on projectID
+  const project = await Project.findById(projectID);
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  // Step 5: Update the video field with cloudinary video URL when video field is undefined
+  if (project?.video === undefined) {
+    // Action 1: Upload the video from local server to cloudinary
+    const cloudinaryVideo = await uploadOnCloudinary(videoPath);
+    if (!cloudinaryVideo?.url) {
+      throw new ApiError(400, "Error while uploading the video");
+    }
+    // Action 2: Update the video field of project with cloudinary video URL
+    project.video = cloudinaryVideo?.url;
+    await project.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Delete video from local disk
+    fs.unlinkSync(videoPath);
+    // Action 2: Throw error message when video is already uploaded
+    throw new ApiError(400, "Maximum of 1 video is allowed");
+  }
+
+  // Step 6: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, project.video, "Video uploaded successfully"));
+});
+
+const updateProjectVideoById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Check if a file is uploaded to local server and it's a video
+  if (!req.file || !req.file?.mimetype.startsWith("video/")) {
+    // Remove uploaded file from local disk
+    if (req.file?.path) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw new ApiError(400, "Please upload a video file");
+  }
+
+  // Step 3: Get the duration of the uploaded video and validate it
+  const videoPath = req.file.path;
+  const isNotValidDuration = await validateVideoDuration(videoPath);
+
+  if (isNotValidDuration) {
+    // Remove uploaded video file from local disk
+    fs.unlinkSync(videoPath);
+    throw new ApiError(400, "Video duration should be at most 3 minutes");
+  }
+
+  // Step 4: Find the project based on project's ID
+  const project = await Project.findOne({ _id: projectID });
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  // step 3: Save old file URL before updating with new file to delete the file from Cloudinary
+  const oldProjectVideoUrl = await Project.findOne({ _id: projectID });
+
+  // Step 4: Update the video field with new cloudinary video URL when video field is not undefined
+  if (project.video) {
+    // Action 1: Upload the new video from local server to cloudinary
+    const cloudinaryVideo = await uploadOnCloudinary(videoPath);
+    if (!cloudinaryVideo?.url) {
+      throw new ApiError(400, "Error while uploading the video");
+    }
+    // Action 2: Update the video field of project with new cloudinary video URL
+    project.video = cloudinaryVideo.url;
+    await project.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Delete video from local disk
+    fs.unlinkSync(videoPath);
+    // Action 2: Throw error message when video is not uploaded
+    throw new ApiError(400, "First upload the project video");
+  }
+
+  // Step 5: Delete old video from cloudinary
+  await deleteVideoFromCloudinary(oldProjectVideoUrl.video);
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Video updated successfully"));
+});
+
+const deleteProjectVideoById = asyncHandler(async (req, res) => {
+  // Step 1: Get the project's ID from params
+  const { projectID } = req.params;
+
+  // Step 2: Find the project based on project's ID
+  const project = await Project.findOne({ _id: projectID });
+  if (!project) {
+    throw new ApiError(404, "Project does not exist");
+  }
+
+  // Step 3: delete the video file when video field is not undefined
+  if (project?.video) {
+    // Action 1: Delete old video from cloudinary
+    await deleteVideoFromCloudinary(project.video);
+
+    // Action 2: Update the video field of project with ""
+    project.video = "";
+    await project.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Throw error message when video is not uploaded
+    throw new ApiError(400, "First upload the project video");
+  }
+
+  // Step 4: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, project, "Video deleted successfully"));
+});
 
 const uploadProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
 const updateProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
 const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
-
 /*
  * addProject✔️
  * updateProjectById✔️ -> title, description, githubLink, liveLink, startTime, endTime
@@ -1253,9 +1393,9 @@ const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {});
  * updateProjectImageById✔️
  * deleteProjectImageById✔️
  
- * uploadProjectVideoById
- * updateProjectVideoById
- * deleteProjectVideoById
+ * uploadProjectVideoById✔️
+ * updateProjectVideoById✔️
+ * deleteProjectVideoById✔️
  
  * uploadProjectDocumentationPDFById
  * updateProjectDocumentationPDFById
@@ -1297,4 +1437,7 @@ export {
   uploadProjectImagesById,
   updateProjectImageById,
   deleteProjectImageById,
+  uploadProjectVideoById,
+  updateProjectVideoById,
+  deleteProjectVideoById,
 };

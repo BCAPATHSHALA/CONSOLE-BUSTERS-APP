@@ -10,4 +10,13 @@ const storage = multer.diskStorage({
   },
 });
 
-export const upload = multer({ storage });
+// Set up multer to handle any file without limit constraint with storage configuration
+export const upload = multer({ storage: storage });
+
+// Set up multer to handle video file uploads with storage configuration
+export const uploadVideo = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+});
