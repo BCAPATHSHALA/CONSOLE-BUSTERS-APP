@@ -982,7 +982,7 @@ const blockAndUnblockSingleUserByID = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, user, message));
 });
 
-// User routes for portfolio
+// User routes for getting the portfolio details
 const getPortfolioAsOwner = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user?._id;
@@ -1076,7 +1076,6 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
     },
   ]);
 
-  console.log("Portfolio: ", portfolio);
   if (!portfolio?.length) {
     throw new ApiError(404, "Portfolio does not exists");
   }
@@ -1084,6 +1083,78 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, portfolio[0], "Portfolio fetched successfully"));
 });
+
+// User routes for getting the portfolio's projects
+// const getPortfolioAllProject = asyncHandler(async (req, res) => {
+//   // Step 1: Verify JWT to get the user's ID
+//   const userID = req.user?._id;
+
+//   // Step 2: write the mongodb pipline to get the portfolio
+//   const portfolioProjects = await User.aggregate([
+//     {
+//       // Stage 1: Get a particular user from DB Collection: users
+//       $match: {
+//         _id: new mongoose.Types.ObjectId(userID),
+//       },
+//     },
+//     {
+//       // Stage 2: Add two collections portfolios(foreign) and users(input) for portfolio as result
+//       $lookup: {
+//         from: "portfolios",
+//         localField: "_id",
+//         foreignField: "owner",
+//         as: "portfolio",
+//         pipeline: [
+//           {
+//             $unwind: "$projects",
+//           },
+//           {
+//             $lookup: {
+//               from: "projects",
+//               localField: "projects",
+//               foreignField: "_id",
+//               as: "projects",
+//             },
+//           },
+//           {
+//             $group: {
+//               _id: "$_id",
+//               projects: { $push: "$projects" },
+//             },
+//           },
+//           {
+//             $project:{
+//               "_id": 0,
+//             }
+//           },
+//         ],
+//       },
+//     },
+//     {
+//       $addFields: {
+//         portfolio: {
+//           $first: "$portfolio",
+//         },
+//       },
+//     },
+//     {
+//       $project: {
+//         portfolio: 1,
+//         _id: 0,
+//       },
+//     },
+//   ]);
+
+//   return res
+//     .status(200)
+//     .json(
+//       new ApiResponse(
+//         200,
+//         portfolioProjects,
+//         "Fetched all portfolio's projects"
+//       )
+//     );
+// });
 
 export {
   registerUser,

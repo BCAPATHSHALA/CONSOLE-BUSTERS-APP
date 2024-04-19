@@ -1,5 +1,9 @@
 import express from "express";
-import { upload, uploadVideo } from "../middleware/multer.middleware.js";
+import {
+  upload,
+  uploadPDF,
+  uploadVideo,
+} from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
   addEducationInAboutMe,
@@ -14,26 +18,33 @@ import {
   createPortfolio,
   deleteEducationByIDInAboutMe,
   deleteHobbyByIDInAboutMe,
+  deleteHomeWelcomeMessage,
   deleteProfileImageInAboutMe,
   deleteProjectById,
+  deleteProjectDocumentationPDFById,
   deleteProjectImageById,
   deleteProjectTechStackById,
   deleteProjectVideoById,
   deleteResume,
+  deleteSkillById,
   deleteSocialLinkByIDInAboutMe,
   deleteWorkExperienceByIDInAboutMe,
   getProjectById,
   updateAboutMe,
   updateEducationByIDInAboutMe,
   updateHobbyByIDInAboutMe,
+  updateHomeWelcomeMessage,
   updateProfileImageInAboutMe,
   updateProjectById,
+  updateProjectDocumentationPDFById,
   updateProjectImageById,
   updateProjectTechStackById,
   updateProjectVideoById,
   updateResume,
+  updateSkillById,
   updateSocialLinkByIDInAboutMe,
   updateWorkExperienceByIDInAboutMe,
+  uploadProjectDocumentationPDFById,
   uploadProjectImagesById,
   uploadProjectVideoById,
   uploadResume,
@@ -51,16 +62,32 @@ router
   .post(verifyJWT, createHomeWelcomeMessage);
 
 router
+  .route("/users/portfolio/update-home-message")
+  .patch(verifyJWT, updateHomeWelcomeMessage);
+
+router
+  .route("/users/portfolio/delete-home-message")
+  .delete(verifyJWT, deleteHomeWelcomeMessage);
+
+router
   .route("/users/portfolio/upload-resume")
-  .post(verifyJWT, upload.single("resume"), uploadResume);
+  .post(verifyJWT, uploadPDF.single("resume"), uploadResume);
 
 router
   .route("/users/portfolio/update-resume")
-  .patch(verifyJWT, upload.single("resume"), updateResume);
+  .patch(verifyJWT, uploadPDF.single("resume"), updateResume);
 
 router.route("/users/portfolio/delete-resume").delete(verifyJWT, deleteResume);
 
 router.route("/users/portfolio/add-skills").post(verifyJWT, addSkills);
+router
+  .route("/users/portfolio/update-skill/:skillID")
+  .patch(verifyJWT, updateSkillById);
+
+router
+  .route("/users/portfolio/delete-skill/:skillID")
+  .delete(verifyJWT, deleteSkillById);
+
 router
   .route("/users/portfolio/add-about-me")
   .post(verifyJWT, upload.single("profileImage"), createAboutMe);
@@ -173,5 +200,25 @@ router
 router
   .route("/users/portfolio/delete-project-video/:projectID")
   .delete(verifyJWT, deleteProjectVideoById);
+
+router
+  .route("/users/portfolio/upload-project-documentation-pdf/:projectID")
+  .post(
+    verifyJWT,
+    uploadPDF.single("docPDF"),
+    uploadProjectDocumentationPDFById
+  );
+
+router
+  .route("/users/portfolio/update-project-documentation-pdf/:projectID")
+  .patch(
+    verifyJWT,
+    uploadPDF.single("docPDF"),
+    updateProjectDocumentationPDFById
+  );
+
+router
+  .route("/users/portfolio/delete-project-documentation-pdf/:projectID")
+  .delete(verifyJWT, deleteProjectDocumentationPDFById);
 
 export default router;

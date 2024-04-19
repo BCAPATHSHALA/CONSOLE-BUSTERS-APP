@@ -20,3 +20,11 @@ export const uploadVideo = multer({
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
 });
+
+// Set up multer to handle PDF file uploads with storage configuration
+export const uploadPDF = multer({
+  storage: storage,
+  limits: {
+    fileSize: 1 * 1024 * 1024, // 1MB limit
+  },
+});
