@@ -442,10 +442,15 @@ const createAboutMe = asyncHandler(async (req, res) => {
   }
 
   // Step 4: Upload the profile image from local server to cloudinary
-  const profileImageLocalPath = req.file?.path;
-  if (!profileImageLocalPath) {
-    throw new ApiError(400, "Profile image file is missing");
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload an image file");
   }
+
+  const profileImageLocalPath = req.file?.path;
 
   const profileImage = await uploadOnCloudinary(profileImageLocalPath);
   if (!profileImage.url) {
@@ -454,7 +459,7 @@ const createAboutMe = asyncHandler(async (req, res) => {
 
   // Step 5: Check if aboutMe already exists
   let aboutMe;
-  if (portfolio.aboutMe === undefined) {
+  if (!portfolio.aboutMe) {
     // Create about me first time
     aboutMe = await AboutMe.create({
       content,
@@ -693,10 +698,15 @@ const updateProfileImageInAboutMe = asyncHandler(async (req, res) => {
   const portfolio = await Portfolio.findOne({ owner: userID });
 
   // Step 2: Get the local path of the new profile image file
-  const newProfileImageLocalPath = req.file?.path;
-  if (!newProfileImageLocalPath) {
-    throw new ApiError(400, "Profile image file is missing");
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload an image file");
   }
+
+  const newProfileImageLocalPath = req.file?.path;
 
   // Step 3: Upload profile image file from local disk to Cloudinary
   const profileImage = await uploadOnCloudinary(newProfileImageLocalPath);
@@ -1071,7 +1081,7 @@ const deleteWorkExperienceByIDInAboutMe = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Work experience deleted successfully"));
 });
 
-// Level 3: Project
+// Level 3: Projects
 const addProject = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user._id;
@@ -1327,6 +1337,14 @@ const uploadProjectImagesById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No image files uploaded");
   }
 
+  req.files.forEach((file) => {
+    if (!file.mimetype.startsWith("image/")) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(file.path);
+      throw new ApiError(400, "Please upload only image files");
+    }
+  });
+
   const cloudinaryImagesURLArray = [];
   if (req.files && req.files.length <= 2) {
     // We want to upload only two images on the local server
@@ -1381,8 +1399,12 @@ const updateProjectImageById = asyncHandler(async (req, res) => {
   const { imageID } = req.params;
 
   // Step 2: Check if image is uploaded on the server
-  if (!req.file || !req.file?.path) {
-    throw new ApiError(400, "No image file uploaded");
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload an image file");
   }
 
   // Step 3: Upload new image file from local disk to Cloudinary
@@ -1730,6 +1752,41 @@ const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, project, "PDF deleted successfully"));
 });
+
+// Level 4: Articles
+/*
+ * createArticle {title, content, category, createdBy }
+ * updateArticleById {title, content, category, publicationDate: Date.now()}
+ * deleteArticleById
+ * getArticleById
+ */
+// Level 5: Certificates
+/*
+* addCertificateDetails {title, description, issuer, issuanceDate, url}
+* updateCertificateDetailsById {title, description, issuer, issuanceDate, url}
+
+* uploadCertificateImageById
+* updateCertificateImageById
+* deleteCertificateImageById 
+
+* deleteCertificateById "Delete whole certificate document with both details and image of it"
+* getCertificateById
+*/
+// Level 6: Achievements
+/*
+ * addAchievement {title, description, type, issuanceDate}
+ * updateAchievementById {title, description, type, issuanceDate}
+ * deleteAchievementById
+ * getAchievementById
+ */
+// Level 7: Testimonials
+/*
+ * addTestimonial {content, name, organization, rating, linkedinURL, twitterURL}
+ * updateTestimonialById {content, name, organization, rating, linkedinURL, twitterURL}
+ * deleteTestimonialById
+ * getTestimonialById
+ */
+// Level 8: ContactMe
 
 export {
   createPortfolio,

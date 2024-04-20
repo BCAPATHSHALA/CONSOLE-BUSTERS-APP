@@ -12,6 +12,7 @@ import crypto from "crypto";
 import { ApiFeatures } from "../utils/apiFeatures.js";
 import { BLOCK_EXPIRY } from "../constants.js";
 import mongoose from "mongoose";
+import fs from "fs";
 
 // Method to generate the access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -69,6 +70,30 @@ const unblockUser = async (userId) => {
   }
 };
 
+// Method to validate the Avatar and CoverImage are image or not
+const validateImageUploads = (req) => {
+  const avatarFiles = req.files["avatar"];
+  const coverImageFiles = req.files["coverImage"];
+
+  // Validate avatar files
+  if (!avatarFiles || !avatarFiles[0].mimetype.startsWith("image/")) {
+    if (avatarFiles && avatarFiles[0].path) {
+      // Remove uploaded avatar file from local disk
+      fs.unlinkSync(avatarFiles[0].path);
+    }
+    throw new ApiError(400, "Please upload an image file only");
+  }
+
+  // Validate cover image files
+  if (!coverImageFiles || !coverImageFiles[0].mimetype.startsWith("image/")) {
+    if (coverImageFiles && coverImageFiles[0].path) {
+      // Remove uploaded cover image file from local disk
+      fs.unlinkSync(coverImageFiles[0].path);
+    }
+    throw new ApiError(400, "Please upload an image file only");
+  }
+};
+
 const registerUser = asyncHandler(async (req, res) => {
   // Step 1: get user details from frontend
   const { fullName, email, username, password } = req.body;
@@ -106,6 +131,14 @@ const registerUser = asyncHandler(async (req, res) => {
     req.files.coverImage.length > 0
   ) {
     coverImageLocalPath = req.files.coverImage[0].path;
+  }
+
+  // TODO: Validate the file mimetype for avatar and coverImage
+  if (avatarLocalPath) {
+    validateImageUploads(req);
+  }
+  if (coverImageLocalPath) {
+    validateImageUploads(req);
   }
 
   // Step 5: upload images from server to cloudinary, check for avatar*
@@ -712,6 +745,14 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Avatar file is missing");
   }
 
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload an image file only");
+  }
+
   // Step 2: upload new avatar image from local disk to cloudinary
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   if (!avatar.url) {
@@ -746,6 +787,14 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {
     throw new ApiError(400, "Cover image file is missing");
+  }
+
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload an image file only");
   }
 
   // Step 2: upload new cover image from local disk to cloudinary
