@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import crypto from "crypto";
+import { AvailableUserRoles, UserRolesEnum } from "../../constants.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -40,8 +41,10 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "user", "moderator", "guest", "premium"],
-      default: "user",
+      enum: AvailableUserRoles,
+      default: UserRolesEnum.USER,
+      required: true,
+      lowercase: true,
     },
     isVerify: {
       type: Boolean,

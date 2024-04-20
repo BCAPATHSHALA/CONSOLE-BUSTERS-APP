@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import jwt from "jsonwebtoken";
 import { User } from "../models/auth/user.model.js";
+import { UserRolesEnum } from "../constants.js";
 
 // Authenticated (You should logged in to secure data)
 export const verifyJWT = asyncHandler(async (req, _, next) => {
@@ -42,10 +43,10 @@ export const verifyJWT = asyncHandler(async (req, _, next) => {
 
 // AuthorizedAdmin (You should logged as well as your role is admin to access the admin data)
 export const authorizedAdmin = (req, _, next) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== UserRolesEnum.ADMIN) {
     throw new ApiError(
       403,
-      `${req.user.role} is now allowed to access this resource`
+      `${req.user.role} is not allowed to access this resource`
     );
   }
   next();

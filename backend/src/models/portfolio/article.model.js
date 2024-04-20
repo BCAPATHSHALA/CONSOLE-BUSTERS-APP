@@ -10,7 +10,7 @@ const articlesSchema = new mongoose.Schema(
       type: String,
       required: [true, "Enter article content"],
     },
-    categories: {
+    category: {
       type: String,
       enum: [
         "MERN",

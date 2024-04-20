@@ -1775,15 +1775,3 @@ export {
   updateSkillById,
   deleteSkillById,
 };
-
-/*
-Today I update some new API features and fixe some issue
-* uploadProjectDocumentationPDFById✔️
-* updateProjectDocumentationPDFById✔️
-* deleteProjectDocumentationPDFById✔️
-* updateHomeWelcomeMessage✔️
-* deleteHomeWelcomeMessage✔️
-* updateSkillById✔️
-* deleteSkillById✔️
-* Fixed the resume PDF bugs✔️
-*/
