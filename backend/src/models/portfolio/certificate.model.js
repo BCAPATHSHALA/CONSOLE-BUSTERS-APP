@@ -15,7 +15,6 @@ const certificateSchema = new mongoose.Schema(
     },
     issuanceDate: {
       type: Date,
-      default: Date.now(),
       required: [true, "Please enter your certificate issuance date"],
     },
     url: {

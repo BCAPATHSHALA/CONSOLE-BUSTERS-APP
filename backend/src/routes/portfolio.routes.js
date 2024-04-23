@@ -6,16 +6,24 @@ import {
 } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
+  addAchievement,
+  addCertificateDetails,
   addEducationInAboutMe,
   addHobbiesInAboutMe,
   addProject,
   addProjectTechStackById,
   addSkills,
   addSocialLinksInAboutMe,
+  addTestimonial,
   addWorkExperienceInAboutMe,
   createAboutMe,
+  createArticle,
   createHomeWelcomeMessage,
   createPortfolio,
+  deleteAchievementById,
+  deleteArticleById,
+  deleteCertificateById,
+  deleteCertificateImageById,
   deleteEducationByIDInAboutMe,
   deleteHobbyByIDInAboutMe,
   deleteHomeWelcomeMessage,
@@ -28,9 +36,18 @@ import {
   deleteResume,
   deleteSkillById,
   deleteSocialLinkByIDInAboutMe,
+  deleteTestimonialById,
   deleteWorkExperienceByIDInAboutMe,
+  getAchievementById,
+  getArticleById,
+  getCertificateById,
   getProjectById,
+  getTestimonialById,
   updateAboutMe,
+  updateAchievementById,
+  updateArticleById,
+  updateCertificateDetailsById,
+  updateCertificateImageById,
   updateEducationByIDInAboutMe,
   updateHobbyByIDInAboutMe,
   updateHomeWelcomeMessage,
@@ -43,7 +60,9 @@ import {
   updateResume,
   updateSkillById,
   updateSocialLinkByIDInAboutMe,
+  updateTestimonialById,
   updateWorkExperienceByIDInAboutMe,
+  uploadCertificateImageById,
   uploadProjectDocumentationPDFById,
   uploadProjectImagesById,
   uploadProjectVideoById,
@@ -220,5 +239,79 @@ router
 router
   .route("/users/portfolio/delete-project-documentation-pdf/:projectID")
   .delete(verifyJWT, deleteProjectDocumentationPDFById);
+
+router.route("/users/portfolio/create-article").post(verifyJWT, createArticle);
+
+router
+  .route("/users/portfolio/update-article/:articleID")
+  .patch(verifyJWT, updateArticleById);
+
+router
+  .route("/users/portfolio/get-article/:articleID")
+  .get(verifyJWT, getArticleById);
+
+router
+  .route("/users/portfolio/delete-article/:articleID")
+  .delete(verifyJWT, deleteArticleById);
+
+router
+  .route("/users/portfolio/add-certificate-details")
+  .post(verifyJWT, addCertificateDetails);
+
+router
+  .route("/users/portfolio/update-certificate-details/:certificateID")
+  .patch(verifyJWT, updateCertificateDetailsById);
+
+router
+  .route("/users/portfolio/get-certificate/:certificateID")
+  .get(verifyJWT, getCertificateById);
+
+router
+  .route("/users/portfolio/delete-certificate/:certificateID")
+  .delete(verifyJWT, deleteCertificateById);
+
+router
+  .route("/users/portfolio/upload-certificate-image/:certificateID")
+  .post(verifyJWT, upload.single("image"), uploadCertificateImageById);
+
+router
+  .route("/users/portfolio/update-certificate-image/:certificateID")
+  .patch(verifyJWT, upload.single("image"), updateCertificateImageById);
+
+router
+  .route("/users/portfolio/delete-certificate-image/:certificateID")
+  .delete(verifyJWT, deleteCertificateImageById);
+
+router
+  .route("/users/portfolio/add-achievement")
+  .post(verifyJWT, addAchievement);
+
+router
+  .route("/users/portfolio/update-achievement/:achievementID")
+  .patch(verifyJWT, updateAchievementById);
+
+router
+  .route("/users/portfolio/get-achievement/:achievementID")
+  .get(verifyJWT, getAchievementById);
+
+router
+  .route("/users/portfolio/delete-achievement/:achievementID")
+  .delete(verifyJWT, deleteAchievementById);
+
+router
+  .route("/users/portfolio/add-testimonial")
+  .post(verifyJWT, addTestimonial);
+
+router
+  .route("/users/portfolio/update-testimonial/:testimonialID")
+  .patch(verifyJWT, updateTestimonialById);
+
+router
+  .route("/users/portfolio/get-testimonial/:testimonialID")
+  .get(verifyJWT, getTestimonialById);
+
+router
+  .route("/users/portfolio/delete-testimonial/:testimonialID")
+  .delete(verifyJWT, deleteTestimonialById);
 
 export default router;

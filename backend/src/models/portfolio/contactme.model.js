@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import validator from "validator";
 
 // 📝 Social Links schema object
 const socialLinksSchema = {
@@ -20,6 +21,7 @@ const contactMeSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      validate: validator.isEmail,
     },
     phone: {
       type: Number,

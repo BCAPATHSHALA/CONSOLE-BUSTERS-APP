@@ -9,6 +9,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
     credential: true,
+    methods: ["POST", "PATCH", "GET", "DELETE", "PUT"],
   })
 );
 

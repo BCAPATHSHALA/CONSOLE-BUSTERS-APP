@@ -16,7 +16,6 @@ const achievementSchema = new mongoose.Schema(
     },
     issuanceDate: {
       type: Date,
-      default: Date.now(),
       required: [true, "Please enter your achievement issuance date"],
     },
   },

@@ -11,6 +11,10 @@ import { AboutMe } from "../models/portfolio/aboutme.model.js";
 import { Project } from "../models/portfolio/project.model.js";
 import fs from "fs";
 import { validateVideoDuration } from "../utils/validator.js";
+import { Article } from "../models/portfolio/article.model.js";
+import { Certificate } from "../models/portfolio/certificate.model.js";
+import { Achievement } from "../models/portfolio/achievement.model.js";
+import { Testimonial } from "../models/portfolio/testimonial.model.js";
 
 // Level 1: Portfolio
 const createPortfolio = asyncHandler(async (req, res) => {
@@ -1124,7 +1128,7 @@ const addProject = asyncHandler(async (req, res) => {
 
   // Step 5: Return response to the user
   return res
-    .status(200)
+    .status(201)
     .json(
       new ApiResponse(201, project, ` ${title} project created successfully`)
     );
@@ -1391,7 +1395,7 @@ const uploadProjectImagesById = asyncHandler(async (req, res) => {
   // Step 4: Return response to the user
   return res
     .status(201)
-    .json(new ApiResponse(201, project.images, "Images uploaded successfully"));
+    .json(new ApiResponse(201, {}, "Images uploaded successfully"));
 });
 
 const updateProjectImageById = asyncHandler(async (req, res) => {
@@ -1441,7 +1445,7 @@ const updateProjectImageById = asyncHandler(async (req, res) => {
   // Step 9: Return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Image updated successfully"));
+    .json(new ApiResponse(200, {}, "Image updated successfully"));
 });
 
 const deleteProjectImageById = asyncHandler(async (req, res) => {
@@ -1478,7 +1482,7 @@ const deleteProjectImageById = asyncHandler(async (req, res) => {
   // Step 8: Return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Image deleted successfully"));
+    .json(new ApiResponse(200, {}, "Image deleted successfully"));
 });
 
 const uploadProjectVideoById = asyncHandler(async (req, res) => {
@@ -1536,7 +1540,7 @@ const uploadProjectVideoById = asyncHandler(async (req, res) => {
   // Step 6: Return response to the user
   return res
     .status(201)
-    .json(new ApiResponse(201, project.video, "Video uploaded successfully"));
+    .json(new ApiResponse(201, {}, "Video uploaded successfully"));
 });
 
 const updateProjectVideoById = asyncHandler(async (req, res) => {
@@ -1594,7 +1598,7 @@ const updateProjectVideoById = asyncHandler(async (req, res) => {
   // Step 8: Return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Video updated successfully"));
+    .json(new ApiResponse(200, {}, "Video updated successfully"));
 });
 
 const deleteProjectVideoById = asyncHandler(async (req, res) => {
@@ -1623,7 +1627,7 @@ const deleteProjectVideoById = asyncHandler(async (req, res) => {
   // Step 4: Return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "Video deleted successfully"));
+    .json(new ApiResponse(200, {}, "Video deleted successfully"));
 });
 
 const uploadProjectDocumentationPDFById = asyncHandler(async (req, res) => {
@@ -1665,13 +1669,7 @@ const uploadProjectDocumentationPDFById = asyncHandler(async (req, res) => {
   // Step 5: Return response to the user
   return res
     .status(201)
-    .json(
-      new ApiResponse(
-        201,
-        project.documentationPDF,
-        "PDF uploaded successfully"
-      )
-    );
+    .json(new ApiResponse(201, {}, "PDF uploaded successfully"));
 });
 
 const updateProjectDocumentationPDFById = asyncHandler(async (req, res) => {
@@ -1719,9 +1717,7 @@ const updateProjectDocumentationPDFById = asyncHandler(async (req, res) => {
   // Step 7: Return response to the user
   return res
     .status(200)
-    .json(
-      new ApiResponse(200, project.documentationPDF, "PDF updated successfully")
-    );
+    .json(new ApiResponse(200, {}, "PDF updated successfully"));
 });
 
 const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {
@@ -1750,43 +1746,685 @@ const deleteProjectDocumentationPDFById = asyncHandler(async (req, res) => {
   // Step 4: Return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, project, "PDF deleted successfully"));
+    .json(new ApiResponse(200, {}, "PDF deleted successfully"));
 });
 
 // Level 4: Articles
-/*
- * createArticle {title, content, category, createdBy }
- * updateArticleById {title, content, category, publicationDate: Date.now()}
- * deleteArticleById
- * getArticleById
- */
+const createArticle = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { title, content, category } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if ([title, content, category].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Step 4: Create the article object in the database
+  const article = await Article.create({
+    title,
+    content,
+    category,
+    createdBy: userID,
+  });
+
+  if (!article) {
+    throw new ApiError(500, "Something went wrong while creating article");
+  }
+
+  // Join article to the user's portfolio
+  portfolio.articles.push(article._id);
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, article, `Article created successfully`));
+});
+
+const updateArticleById = asyncHandler(async (req, res) => {
+  // Step 1: Get the article's ID from params
+  const { articleID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { newTitle, newContent, newCategory } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [newTitle, newContent, newCategory].some((field) => field?.trim() === "")
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Step 4: Get the existing article to update the specific fields
+  const article = await Article.findByIdAndUpdate(
+    articleID,
+    {
+      $set: {
+        title: newTitle,
+        content: newContent,
+        category: newCategory,
+        publicationDate: Date.now(),
+      },
+    },
+    { new: true }
+  );
+
+  if (!article) {
+    throw new ApiError(404, "Article not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Article updated successfully"));
+});
+
+const getArticleById = asyncHandler(async (req, res) => {
+  // Step 1: Get the article's ID from params
+  const { articleID } = req.params;
+
+  // Step 2: Find article from the database
+  const article = await Article.findById(articleID);
+  if (!article) {
+    throw new ApiError(404, "Article does not exist");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, article, "Article fetched successfully"));
+});
+
+const deleteArticleById = asyncHandler(async (req, res) => {
+  // Step 1: Get the article's ID from params
+  const { articleID } = req.params;
+
+  // Step 2: Delete the article from the database
+  const deletedArticle = await Article.findByIdAndDelete(articleID);
+
+  // Check if the article was found and deleted
+  if (!deletedArticle) {
+    throw new ApiError(404, "Article not found");
+  }
+
+  // Step 3: Find the portfolio to delete the deleted article id from it
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+  if (!portfolio) {
+    throw new ApiError(404, "Portfolio does not exist");
+  }
+
+  // Step 4: Filter out the article to delete from the portfolio's article array
+  portfolio.articles = portfolio.articles.filter(
+    (article) => article._id.toString() !== articleID
+  );
+
+  // Step 5: Save the updated article and portfolio
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Article deleted successfully"));
+});
+
 // Level 5: Certificates
-/*
-* addCertificateDetails {title, description, issuer, issuanceDate, url}
-* updateCertificateDetailsById {title, description, issuer, issuanceDate, url}
+const addCertificateDetails = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
 
-* uploadCertificateImageById
-* updateCertificateImageById
-* deleteCertificateImageById 
+  // Step 2: Retrieve data from the request body
+  const { title, description, issuer, issuanceDate, url } = req.body;
 
-* deleteCertificateById "Delete whole certificate document with both details and image of it"
-* getCertificateById
-*/
+  // Step 3: Validation for not empty fields
+  if (
+    [title, issuer, issuanceDate, url].some((field) => field?.trim() === "")
+  ) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Todo: Parse issuanceDate to Date type
+  const [day, month, year] = issuanceDate.split("-").map(Number);
+  const parsedIssuanceDate = new Date(year, month - 1, day);
+
+  // Step 4: Create the certificate object in the database
+  const certificate = await Certificate.create({
+    title,
+    issuer,
+    issuanceDate: parsedIssuanceDate,
+    url,
+    description: description || "",
+  });
+
+  if (!certificate) {
+    throw new ApiError(500, "Something went wrong while creating certificate");
+  }
+
+  // Join certificate to the user's portfolio
+  portfolio.certificates.push(certificate._id);
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to the user
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(201, certificate, `Certificate created successfully`)
+    );
+});
+
+const updateCertificateDetailsById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { newTitle, newDescription, newIssuer, newIssuanceDate, newUrl } =
+    req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [newTitle, newIssuer, newIssuanceDate, newUrl].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Todo: Parse newIssuanceDate to Date type
+  const [day, month, year] = newIssuanceDate.split("-").map(Number);
+  const parsedNewIssuanceDate = new Date(year, month - 1, day);
+
+  // Step 4: Get the existing certificate to update the specific fields
+  const certificate = await Certificate.findByIdAndUpdate(
+    certificateID,
+    {
+      $set: {
+        title: newTitle,
+        description: newDescription || "",
+        issuer: newIssuer,
+        issuanceDate: parsedNewIssuanceDate,
+        url: newUrl,
+      },
+    },
+    { new: true }
+  );
+
+  if (!certificate) {
+    throw new ApiError(404, "Certificate not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Certificate updated successfully"));
+});
+
+const getCertificateById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Find certificate from the database
+  const certificate = await Certificate.findById(certificateID);
+  if (!certificate) {
+    throw new ApiError(404, "Certificate does not exist");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, certificate, "Certificate fetched successfully")
+    );
+});
+
+const deleteCertificateById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Delete the certificate from the database
+  const deletedCertificate = await Certificate.findByIdAndDelete(certificateID);
+
+  // Check if the certificate was found and deleted
+  if (!deletedCertificate) {
+    throw new ApiError(404, "Certificate not found");
+  }
+
+  // Step 3: Find the portfolio to delete the deleted certificate id from it
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+  if (!portfolio) {
+    throw new ApiError(404, "Portfolio does not exist");
+  }
+
+  // Step 4: Filter out the certificate to delete from the portfolio's certificate array
+  portfolio.certificates = portfolio.certificates.filter(
+    (certificate) => certificate._id.toString() !== certificateID
+  );
+
+  // Step 5: Save the updated certificate and portfolio
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Certificate deleted successfully"));
+});
+
+const uploadCertificateImageById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Check if a file is uploaded to local server and it's a Image
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload a image file");
+  }
+
+  const certificateImageLocalPath = req.file?.path;
+
+  // Step 3: Find certificate from the database
+  const certificate = await Certificate.findById(certificateID);
+  if (!certificate) {
+    throw new ApiError(404, "Certificate does not exist");
+  }
+
+  // Step 4: Upload certificate image when image filed is undefined
+  if (!certificate?.image) {
+    // ACTION 1: Upload the image file from the local disk to cloudinary
+    const cloudinaryCertificate = await uploadOnCloudinary(
+      certificateImageLocalPath
+    );
+    if (!cloudinaryCertificate?.url) {
+      throw new ApiError(400, "Error while uploading the image");
+    }
+
+    // Action 2: Update the image field via cloudinary certificate URL
+    certificate.image = cloudinaryCertificate.url;
+    await certificate.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Delete the file from local disk
+    fs.unlinkSync(certificateImageLocalPath);
+
+    // Action 2: Throw an error to the user
+    throw new ApiError(400, "Maximum of 1 certificate image is allowed");
+  }
+
+  // Step 6: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, "Certificate image uploaded successfully"));
+});
+
+const updateCertificateImageById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Check if a file is uploaded to local server and it's a Image
+  if (!req.file || !req.file?.mimetype.startsWith("image/")) {
+    if (req.file?.path != undefined) {
+      // Remove uploaded file from local disk
+      fs.unlinkSync(req.file?.path);
+    }
+    throw new ApiError(400, "Please upload a image file");
+  }
+
+  const certificateImageLocalPath = req.file?.path;
+
+  // Step 3: Find certificate from the database
+  const certificate = await Certificate.findById(certificateID);
+  if (!certificate) {
+    throw new ApiError(404, "Certificate does not exist");
+  }
+
+  // Step 4: Update certificate image when image filed is not undefined
+
+  // Save the old certificate image URL before updating with the new file to delete the file from cloudinary
+  const oldCertificate = await Certificate.findById(certificateID);
+
+  if (certificate?.image) {
+    // ACTION 1: Upload the image file from the local disk to cloudinary
+    const cloudinaryCertificate = await uploadOnCloudinary(
+      certificateImageLocalPath
+    );
+    if (!cloudinaryCertificate?.url) {
+      throw new ApiError(400, "Error while uploading the image");
+    }
+
+    // Action 2: Update the image field via cloudinary certificate URL
+    certificate.image = cloudinaryCertificate.url;
+    await certificate.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Delete the file from local disk
+    fs.unlinkSync(certificateImageLocalPath);
+
+    // Action 2: Throw an error to the user
+    throw new ApiError(400, "First upload certificate image");
+  }
+
+  // Step 6: Delete the old certificate image file from cloudinary
+  await deleteFromCloudinary(oldCertificate.image);
+
+  // Step 7: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Certificate image updated successfully"));
+});
+
+const deleteCertificateImageById = asyncHandler(async (req, res) => {
+  // Step 1: Get the certificate's ID from params
+  const { certificateID } = req.params;
+
+  // Step 2: Find certificate from the database
+  const certificate = await Certificate.findById(certificateID);
+  if (!certificate) {
+    throw new ApiError(404, "Certificate does not exist");
+  }
+
+  // Step 3: delete the image file when image field is not undefined
+  if (certificate?.image) {
+    // Action 1: Delete old image from cloudinary
+    await deleteFromCloudinary(certificate.image);
+
+    // Action 2: Update the image field of certificate with ""
+    certificate.image = "";
+    await certificate.save({ validateBeforeSave: false });
+  } else {
+    // Action 1: Throw error message to user
+    throw new ApiError(400, "First upload the certificate image");
+  }
+
+  // Step 4: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Certificate image deleted successfully"));
+});
+
 // Level 6: Achievements
-/*
- * addAchievement {title, description, type, issuanceDate}
- * updateAchievementById {title, description, type, issuanceDate}
- * deleteAchievementById
- * getAchievementById
- */
+const addAchievement = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { title, description, type, issuanceDate } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [title, description, type, issuanceDate].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Todo: Parse issuanceDate to Date type
+  const [day, month, year] = issuanceDate.split("-").map(Number);
+  const parsedIssuanceDate = new Date(year, month - 1, day);
+
+  // Step 4: Create the achievement object in the database
+  const achievement = await Achievement.create({
+    title,
+    description,
+    type,
+    issuanceDate: parsedIssuanceDate,
+  });
+
+  if (!achievement) {
+    throw new ApiError(500, "Something went wrong while adding achievement");
+  }
+
+  // Join achievement to the user's portfolio
+  portfolio.achievements.push(achievement._id);
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to the user
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(201, achievement, `Achievement created successfully`)
+    );
+});
+
+const updateAchievementById = asyncHandler(async (req, res) => {
+  // Step 1: Get the achievement's ID from params
+  const { achievementID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const { newTitle, newDescription, newType, newIssuanceDate } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [newTitle, newDescription, newType, newIssuanceDate].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  // Todo: Parse newIssuanceDate to Date type
+  const [day, month, year] = newIssuanceDate.split("-").map(Number);
+  const parsedNewIssuanceDate = new Date(year, month - 1, day);
+
+  // Step 4: Get the existing achievement to update the specific fields
+  const achievement = await Achievement.findByIdAndUpdate(
+    achievementID,
+    {
+      $set: {
+        title: newTitle,
+        description: newDescription,
+        type: newType,
+        issuanceDate: parsedNewIssuanceDate,
+      },
+    },
+    { new: true }
+  );
+
+  if (!achievement) {
+    throw new ApiError(404, "Achievement not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Achievement updated successfully"));
+});
+
+const getAchievementById = asyncHandler(async (req, res) => {
+  // Step 1: Get the achievement's ID from params
+  const { achievementID } = req.params;
+
+  // Step 2: Find achievement from the database
+  const achievement = await Achievement.findById(achievementID);
+  if (!achievement) {
+    throw new ApiError(404, "Achievement does not exist");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, achievement, "Achievement fetched successfully")
+    );
+});
+
+const deleteAchievementById = asyncHandler(async (req, res) => {
+  // Step 1: Get the achievement's ID from params
+  const { achievementID } = req.params;
+
+  // Step 2: Delete the achievement from the database
+  const deletedAchievement = await Achievement.findByIdAndDelete(achievementID);
+
+  // Check if the achievement was found and deleted
+  if (!deletedAchievement) {
+    throw new ApiError(404, "Achievement not found");
+  }
+
+  // Step 3: Find the portfolio to delete the deleted achievement id from it
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+  if (!portfolio) {
+    throw new ApiError(404, "Portfolio does not exist");
+  }
+
+  // Step 4: Filter out the achievement to delete from the portfolio's achievement array
+  portfolio.achievements = portfolio.achievements.filter(
+    (achievement) => achievement._id.toString() !== achievementID
+  );
+
+  // Step 5: Save the updated achievement and portfolio
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Achievement deleted successfully"));
+});
+
 // Level 7: Testimonials
-/*
- * addTestimonial {content, name, organization, rating, linkedinURL, twitterURL}
- * updateTestimonialById {content, name, organization, rating, linkedinURL, twitterURL}
- * deleteTestimonialById
- * getTestimonialById
- */
-// Level 8: ContactMe
+const addTestimonial = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { content, name, organization, rating, linkedinURL, twitterURL } =
+    req.body;
+
+  // Step 3: Validation for not empty fields
+  if ([content, name, organization].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Create the testimonial object in the database
+  const testimonial = await Testimonial.create({
+    content,
+    name,
+    organization,
+    rating: rating || 0,
+    linkedinURL: linkedinURL || "",
+    twitterURL: twitterURL || "",
+  });
+
+  if (!testimonial) {
+    throw new ApiError(500, "Something went wrong while adding testimonial");
+  }
+
+  // Join testimonial to the user's portfolio
+  portfolio.testimonials.push(testimonial._id);
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 5: Return response to the user
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(201, testimonial, `Testimonial created successfully`)
+    );
+});
+
+const updateTestimonialById = asyncHandler(async (req, res) => {
+  // Step 1: Get the testimonial's ID from params
+  const { testimonialID } = req.params;
+
+  // Step 2: Retrieve data from the request body
+  const {
+    newContent,
+    newName,
+    newOrganization,
+    newRating,
+    newLinkedinURL,
+    newTwitterURL,
+  } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if (
+    [newContent, newName, newOrganization].some((field) => field?.trim() === "")
+  ) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Get the existing testimonial to update the specific fields
+  const testimonial = await Testimonial.findByIdAndUpdate(
+    testimonialID,
+    {
+      $set: {
+        content: newContent,
+        name: newName,
+        organization: newOrganization,
+        rating: newRating || 0,
+        linkedinURL: newLinkedinURL || "",
+        twitterURL: newTwitterURL || "",
+      },
+    },
+    { new: true }
+  );
+
+  if (!testimonial) {
+    throw new ApiError(404, "Testimonial not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Testimonial updated successfully"));
+});
+
+const getTestimonialById = asyncHandler(async (req, res) => {
+  // Step 1: Get the testimonial's ID from params
+  const { testimonialID } = req.params;
+
+  // Step 2: Find testimonial from the database
+  const testimonial = await Testimonial.findById(testimonialID);
+  if (!testimonial) {
+    throw new ApiError(404, "Testimonial does not exist");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, testimonial, "Testimonial fetched successfully")
+    );
+});
+
+const deleteTestimonialById = asyncHandler(async (req, res) => {
+  // Step 1: Get the testimonial's ID from params
+  const { testimonialID } = req.params;
+
+  // Step 2: Delete the testimonial from the database
+  const deletedTestimonial = await Testimonial.findByIdAndDelete(testimonialID);
+
+  // Check if the testimonial was found and deleted
+  if (!deletedTestimonial) {
+    throw new ApiError(404, "Testimonial not found");
+  }
+
+  // Step 3: Find the portfolio to delete the deleted testimonial from it
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+  if (!portfolio) {
+    throw new ApiError(404, "Portfolio does not exist");
+  }
+
+  // Step 4: Filter out the testimonial to delete from the portfolio's testimonial array
+  portfolio.testimonials = portfolio.testimonials.filter(
+    (testimonial) => testimonial._id.toString() !== testimonialID
+  );
+
+  // Step 5: Save the updated testimonial and portfolio
+  await portfolio.save({ validateBeforeSave: false });
+
+  // Step 6: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Testimonial deleted successfully"));
+});
 
 export {
   createPortfolio,
@@ -1831,4 +2469,23 @@ export {
   deleteHomeWelcomeMessage,
   updateSkillById,
   deleteSkillById,
+  createArticle,
+  updateArticleById,
+  getArticleById,
+  deleteArticleById,
+  addCertificateDetails,
+  updateCertificateDetailsById,
+  getCertificateById,
+  deleteCertificateById,
+  uploadCertificateImageById,
+  updateCertificateImageById,
+  deleteCertificateImageById,
+  addAchievement,
+  updateAchievementById,
+  getAchievementById,
+  deleteAchievementById,
+  addTestimonial,
+  updateTestimonialById,
+  getTestimonialById,
+  deleteTestimonialById,
 };
