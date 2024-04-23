@@ -13,6 +13,7 @@ import { ApiFeatures } from "../utils/apiFeatures.js";
 import { BLOCK_EXPIRY } from "../constants.js";
 import mongoose from "mongoose";
 import fs from "fs";
+import { Portfolio } from "../models/portfolio/portfolio.model.js";
 
 // Method to generate the access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -1036,7 +1037,7 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
   // Step 1: Verify JWT to get the user's ID
   const userID = req.user?._id;
 
-  // Step 2: write the mongodb pipline to get the portfolio
+  // Step 2: Fetch the portfolio using MongoDB aggregation pipeline
   const portfolio = await User.aggregate([
     {
       // Stage 1: Get a particular user from DB Collection: users
@@ -1095,6 +1096,26 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
               ],
             },
           },
+          // [portfolios(input) and contactMe(foreign)]
+          {
+            $lookup: {
+              from: "contactmes",
+              localField: "contactMe",
+              foreignField: "_id",
+              as: "contactMe",
+              pipeline: [
+                {
+                  $project: {
+                    email: 1,
+                    phone: 1,
+                    address: 1,
+                    socialLinks: 1,
+                    _id: 1,
+                  },
+                },
+              ],
+            },
+          },
           {
             $addFields: {
               owner: {
@@ -1102,6 +1123,9 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
               },
               aboutMe: {
                 $first: "$aboutMe",
+              },
+              contactMe: {
+                $first: "$contactMe",
               },
             },
           },
@@ -1125,9 +1149,18 @@ const getPortfolioAsOwner = asyncHandler(async (req, res) => {
     },
   ]);
 
+  // Step 3: Check if portfolio exists
   if (!portfolio?.length) {
     throw new ApiError(404, "Portfolio does not exists");
   }
+
+  // Step 4: Populate specific array fields
+  console.log(portfolio[0].portfolio);
+  await Portfolio.populate(portfolio[0].portfolio, {
+    path: "articles certificates achievements testimonials projects",
+  });
+
+  // Step 5: Return the populated portfolio
   return res
     .status(200)
     .json(new ApiResponse(200, portfolio[0], "Portfolio fetched successfully"));

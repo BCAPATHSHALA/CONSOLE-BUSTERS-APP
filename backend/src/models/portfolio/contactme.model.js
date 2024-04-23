@@ -22,10 +22,18 @@ const contactMeSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       validate: validator.isEmail,
+      required: true,
     },
     phone: {
       type: Number,
-      minLength: [10, "Invalid phone number"],
+      validate: {
+        validator: function (v) {
+          // Custom validation function to check length
+          // Validates if it contains exactly 10 digits
+          return /^\d{10}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid phone number!`,
+      },
     },
     address: {
       city: {

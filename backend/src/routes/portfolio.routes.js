@@ -8,11 +8,13 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
   addAchievement,
   addCertificateDetails,
+  addContactMe,
   addEducationInAboutMe,
   addHobbiesInAboutMe,
   addProject,
   addProjectTechStackById,
   addSkills,
+  addSocialLinkInContactMe,
   addSocialLinksInAboutMe,
   addTestimonial,
   addWorkExperienceInAboutMe,
@@ -24,6 +26,7 @@ import {
   deleteArticleById,
   deleteCertificateById,
   deleteCertificateImageById,
+  deleteContactMe,
   deleteEducationByIDInAboutMe,
   deleteHobbyByIDInAboutMe,
   deleteHomeWelcomeMessage,
@@ -36,6 +39,7 @@ import {
   deleteResume,
   deleteSkillById,
   deleteSocialLinkByIDInAboutMe,
+  deleteSocialLinkByIdInContactMe,
   deleteTestimonialById,
   deleteWorkExperienceByIDInAboutMe,
   getAchievementById,
@@ -48,6 +52,7 @@ import {
   updateArticleById,
   updateCertificateDetailsById,
   updateCertificateImageById,
+  updateContactMe,
   updateEducationByIDInAboutMe,
   updateHobbyByIDInAboutMe,
   updateHomeWelcomeMessage,
@@ -60,6 +65,7 @@ import {
   updateResume,
   updateSkillById,
   updateSocialLinkByIDInAboutMe,
+  updateSocialLinkByIdInContactMe,
   updateTestimonialById,
   updateWorkExperienceByIDInAboutMe,
   uploadCertificateImageById,
@@ -313,5 +319,27 @@ router
 router
   .route("/users/portfolio/delete-testimonial/:testimonialID")
   .delete(verifyJWT, deleteTestimonialById);
+
+router.route("/users/portfolio/add-contact-me").post(verifyJWT, addContactMe);
+
+router
+  .route("/users/portfolio/update-contact-me")
+  .patch(verifyJWT, updateContactMe);
+
+router
+  .route("/users/portfolio/delete-contact-me")
+  .delete(verifyJWT, deleteContactMe);
+
+router
+  .route("/users/portfolio/contact-me/add-social")
+  .post(verifyJWT, addSocialLinkInContactMe);
+
+router
+  .route("/users/portfolio/contact-me/update-social/:socialLinkID")
+  .patch(verifyJWT, updateSocialLinkByIdInContactMe);
+
+router
+  .route("/users/portfolio/contact-me/delete-social/:socialLinkID")
+  .delete(verifyJWT, deleteSocialLinkByIdInContactMe);
 
 export default router;

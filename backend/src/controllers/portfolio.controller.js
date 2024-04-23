@@ -15,6 +15,9 @@ import { Article } from "../models/portfolio/article.model.js";
 import { Certificate } from "../models/portfolio/certificate.model.js";
 import { Achievement } from "../models/portfolio/achievement.model.js";
 import { Testimonial } from "../models/portfolio/testimonial.model.js";
+import { ContactMe } from "../models/portfolio/contactme.model.js";
+import { platform } from "os";
+import { url } from "inspector";
 
 // Level 1: Portfolio
 const createPortfolio = asyncHandler(async (req, res) => {
@@ -481,13 +484,13 @@ const createAboutMe = asyncHandler(async (req, res) => {
     await portfolio.save();
   } else {
     await deleteFromCloudinary(profileImage?.url);
-    throw new ApiError(409, "AboutMe is already created");
+    throw new ApiError(409, "About me is already created");
   }
 
   // Step 7: Return response to the user
   return res
     .status(201)
-    .json(new ApiResponse(201, {}, "AboutMe added successfully"));
+    .json(new ApiResponse(201, {}, "About me added successfully"));
 });
 
 const addHobbiesInAboutMe = asyncHandler(async (req, res) => {
@@ -2426,6 +2429,262 @@ const deleteTestimonialById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Testimonial deleted successfully"));
 });
 
+// Level 8: ContactMe
+const addContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { email, phone, city, state, country } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if ([email].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Check if contactMe already exists
+  let contactMe;
+  if (!portfolio?.contactMe) {
+    const addressObj = {
+      city: city || "",
+      state: state || "",
+      country: country || "",
+    };
+
+    // Create contactMe document first time
+    contactMe = await ContactMe.create({
+      email,
+      phone: phone || null,
+      address: addressObj,
+    });
+
+    if (!contactMe) {
+      throw new ApiError(500, "Something went wrong while adding contact me");
+    }
+
+    // Join contactMe to the user's portfolio
+    portfolio.contactMe = contactMe._id;
+    await portfolio.save();
+  } else {
+    throw new ApiError(409, "Contact me is already created");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(201)
+    .json(new ApiResponse(201, contactMe, "Contact me added successfully"));
+});
+
+const updateContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { newEmail, newPhone, newCity, newState, newCountry } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if ([newEmail].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Check if contactMe already exists then update it
+  let contactMe;
+  if (portfolio?.contactMe) {
+    const addressObj = {
+      city: newCity || "",
+      state: newState || "",
+      country: newCountry || "",
+    };
+
+    // Update old contactMe document
+    const contactMeID = portfolio.contactMe;
+    contactMe = await ContactMe.findByIdAndUpdate(
+      contactMeID,
+      {
+        $set: {
+          email: newEmail,
+          phone: newPhone || null,
+          address: addressObj,
+        },
+      },
+      { new: true }
+    );
+
+    if (!contactMe) {
+      throw new ApiError(500, "Something went wrong while updating contact me");
+    }
+  } else {
+    throw new ApiError(409, "Contact me does not found");
+  }
+
+  // Step 5: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, contactMe, "Contact me updated successfully"));
+});
+
+const deleteContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Check if contactMe already exists then delete it
+  let contactMe;
+  if (portfolio?.contactMe) {
+    // Delete old contactMe document
+    const contactMeID = portfolio.contactMe;
+    contactMe = await ContactMe.findByIdAndDelete(contactMeID);
+
+    if (!contactMe) {
+      throw new ApiError(500, "Something went wrong while deleting contact me");
+    }
+
+    portfolio.contactMe = null;
+    portfolio.save({ validateBeforeSave: false });
+  } else {
+    throw new ApiError(409, "Contact me does not found");
+  }
+
+  // Step 3: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Contact me deleted successfully"));
+});
+
+const addSocialLinkInContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body
+  const { platform, url } = req.body;
+
+  // Step 3: Validation for not empty fields
+  if ([platform, url].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Fetch the contactMe document using the stored ID
+  const contactMeID = portfolio.contactMe;
+  let contactMe = await ContactMe.findById(contactMeID);
+
+  if (!contactMe) {
+    throw new ApiError(409, "Contact me does not exist");
+  }
+
+  // Step 5: Check if the social link platform is unique
+  const existingSocialLink = contactMe.socialLinks.find(
+    (link) => link.platform === platform
+  );
+  if (existingSocialLink) {
+    throw new ApiError(409, `${platform} already exists in social links`);
+  }
+
+  // Step 6: Update contactMe with the new socialLink
+  contactMe.socialLinks.push({ platform, url });
+  await contactMe.save();
+
+  // Step 7: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, contactMe, `${platform} added successfully`));
+});
+
+const updateSocialLinkByIdInContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve data from the request body and parameters
+  const { newPlatform, newUrl } = req.body;
+  const { socialLinkID } = req.params;
+
+  // Step 3: Validation for not empty fields
+  if ([newPlatform, newUrl].some((field) => field?.trim() === "")) {
+    throw new ApiError(400, "Please fill in all required fields");
+  }
+
+  // Step 4: Fetch the contactMe document using the stored ID
+  const contactMeID = portfolio.contactMe;
+  let contactMe = await ContactMe.findById(contactMeID);
+
+  if (!contactMe) {
+    throw new ApiError(409, "Contact me does not exist");
+  }
+
+  // Step 5: Find the index of the social link to update
+  const socialLinkIndex = contactMe.socialLinks.findIndex(
+    (link) => link._id.toString() === socialLinkID
+  );
+
+  if (socialLinkIndex === -1) {
+    throw new ApiError(404, "Social link not found");
+  }
+
+  // Step 6: Check if the new platform already exists in other social links
+  const existingSocialLink = contactMe.socialLinks.find(
+    (link, index) => link.platform === newPlatform && index !== socialLinkIndex
+  );
+
+  if (existingSocialLink) {
+    throw new ApiError(
+      409,
+      "The platform already exists in another social link"
+    );
+  }
+
+  // Step 7: Update the social link
+  contactMe.socialLinks[socialLinkIndex].platform = newPlatform;
+  contactMe.socialLinks[socialLinkIndex].url = newUrl;
+  await contactMe.save();
+
+  // Step 8: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, contactMe, "Social link updated successfully"));
+});
+
+const deleteSocialLinkByIdInContactMe = asyncHandler(async (req, res) => {
+  // Step 1: Verify JWT to get the user's ID
+  const userID = req.user._id;
+  const portfolio = await Portfolio.findOne({ owner: userID });
+
+  // Step 2: Retrieve social link ID from request parameters
+  const { socialLinkID } = req.params;
+
+  // Step 3: Fetch the contactMe document using the stored ID
+  const contactMeID = portfolio.contactMe;
+  let contactMe = await ContactMe.findById(contactMeID);
+
+  if (!contactMe) {
+    throw new ApiError(409, "Contact me does not exist");
+  }
+
+  // Step 4: Find the index of the social link to delete
+  const socialLinkIndex = contactMe.socialLinks.findIndex(
+    (link) => link._id.toString() === socialLinkID
+  );
+
+  if (socialLinkIndex === -1) {
+    throw new ApiError(404, "Social link not found");
+  }
+
+  // Step 5: Filter out the social link with the specified ID
+  contactMe.socialLinks = contactMe.socialLinks.filter(
+    (link) => link._id.toString() !== socialLinkID
+  );
+
+  // Step 6: Save the updated contactMe document
+  await contactMe.save();
+
+  // Step 7: Return response to the user
+  return res
+    .status(200)
+    .json(new ApiResponse(200, contactMe, "Social link deleted successfully"));
+});
+
 export {
   createPortfolio,
   createHomeWelcomeMessage,
@@ -2488,4 +2747,10 @@ export {
   updateTestimonialById,
   getTestimonialById,
   deleteTestimonialById,
+  addContactMe,
+  updateContactMe,
+  deleteContactMe,
+  addSocialLinkInContactMe,
+  updateSocialLinkByIdInContactMe,
+  deleteSocialLinkByIdInContactMe,
 };
