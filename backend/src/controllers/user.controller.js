@@ -386,7 +386,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   // Step 5: check message sent or not
   if (!response) {
     user.resetPasswordToken = undefined;
-    user.resetPasswordExpiry = undefined;
+    user.resetPasswordTokenExpiry = undefined;
     await user.save({ validateBeforeSave: false });
     throw ApiError(404, "Error sending email");
   }
@@ -397,7 +397,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { resetToken: resetToken },
+        {},
         "Reset password link sent successfully to your registered email."
       )
     );
@@ -498,7 +498,7 @@ const sendEmailVerificationLink = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { resetToken: resetToken },
+        {},
         "Verification email sent successfully to your registered email."
       )
     );
@@ -592,7 +592,7 @@ const sendOTPForTwoStepVerification = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        { randomOTP: randomOTP },
+        {},
         "OTP sent successfully to your registered email."
       )
     );
@@ -848,7 +848,7 @@ const deleteUserAvatar = asyncHandler(async (req, res) => {
   // Step 3: return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, user, "Avatar image deleted successfully"));
+    .json(new ApiResponse(200, {}, "Avatar image deleted successfully"));
 });
 
 const deleteUserCoverImage = asyncHandler(async (req, res) => {
@@ -872,7 +872,7 @@ const deleteUserCoverImage = asyncHandler(async (req, res) => {
   // Step 3: return response to the user
   return res
     .status(200)
-    .json(new ApiResponse(200, user, "Cover image deleted successfully"));
+    .json(new ApiResponse(200, {}, "Cover image deleted successfully"));
 });
 
 const deleteUserProfile = asyncHandler(async (req, res) => {
