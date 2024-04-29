@@ -1,5 +1,5 @@
 /schedule_cron.js
-./src/utils/sendEmail.js
+/sendEmail.js
 
 # Logs
 logs

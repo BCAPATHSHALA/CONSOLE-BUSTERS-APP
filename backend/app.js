@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { limiter } from "./config/rateLimiter.js";
+import { limiter } from "./src/config/rateLimiter.js";
 
 const app = express();
 
@@ -28,8 +28,8 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // Import the routes
-import userRouter from "./routes/user.routes.js";
-import portfolioRouter from "./routes/portfolio.routes.js";
+import userRouter from "./src/routes/user.routes.js";
+import portfolioRouter from "./src/routes/portfolio.routes.js";
 
 // Routes declaration middlewares
 app.use("/api/v1", userRouter);
@@ -37,8 +37,8 @@ app.use("/api/v1", portfolioRouter);
 
 // Time Scheduler 1: Automatically unblock users after 2 days
 import nodeCron from "node-cron";
-import { User } from "./models/auth/user.model.js";
-import { unblockUser } from "./controllers/user.controller.js";
+import { User } from "./src/models/auth/user.model.js";
+import { unblockUser } from "./src/controllers/user.controller.js";
 
 // Time schedule to run every day at midnight
 nodeCron.schedule("0 0 * * * *", async () => {
@@ -61,7 +61,7 @@ nodeCron.schedule("0 0 * * * *", async () => {
 });
 
 // 🧑‍💻 When any error occurs then we are calling custom error middleware for all routes (Autometically)
-import { ErrorMiddleware } from "../src/middleware/error.middleware.js";
+import { ErrorMiddleware } from "./src/middleware/error.middleware.js";
 app.use(ErrorMiddleware);
 
 export { app };
