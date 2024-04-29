@@ -3,8 +3,8 @@ import { ApiError } from "../utils/apiError.js";
 
 // Configure rate limiter middleware to prevent misuse of the service and avoid cost spikes
 const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // Time window is 15 minutes
-  max: 2, // Max requests per 15 minutes for each IP address
+  windowMs: 15 * 60 * 1000, // Time window is 15 minutes
+  max: 250, // Max 250 requests per 15 minutes for each IP address
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers response
   legacyHeaders: false, // Disable legacy headers or `X-RateLimit-*` headers
 
