@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { limiter } from "./config/rateLimiter.js";
 
 const app = express();
 
@@ -61,7 +62,6 @@ nodeCron.schedule("0 0 * * * *", async () => {
 
 // 🧑‍💻 When any error occurs then we are calling custom error middleware for all routes (Autometically)
 import { ErrorMiddleware } from "../src/middleware/error.middleware.js";
-import { limiter } from "./config/rateLimiter.js";
 app.use(ErrorMiddleware);
 
 export { app };
