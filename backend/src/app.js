@@ -13,6 +13,9 @@ app.use(
   })
 );
 
+// Rate limiting middleware
+app.use(limiter);
+
 // Configuration of middleware for handling the different data format
 // JSON data from req.body
 app.use(express.json({ limit: "16kb" }));
@@ -58,6 +61,7 @@ nodeCron.schedule("0 0 * * * *", async () => {
 
 // 🧑‍💻 When any error occurs then we are calling custom error middleware for all routes (Autometically)
 import { ErrorMiddleware } from "../src/middleware/error.middleware.js";
+import { limiter } from "./config/rateLimiter.js";
 app.use(ErrorMiddleware);
 
 export { app };
