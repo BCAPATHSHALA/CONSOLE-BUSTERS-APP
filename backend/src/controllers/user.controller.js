@@ -7,13 +7,18 @@ import {
 import { User } from "../models/auth/user.model.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
-import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
 import { ApiFeatures } from "../utils/apiFeatures.js";
 import { BLOCK_EXPIRY } from "../constants.js";
 import mongoose from "mongoose";
 import fs from "fs";
 import { Portfolio } from "../models/portfolio/portfolio.model.js";
+import {
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  sendEmail,
+  twoStepVerificationOTPMailgenContent,
+} from "../utils/mail.js";
 
 // Method to generate the access and refresh token
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -369,19 +374,18 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Step 3: create reset new password link and send message
-  const url = `${process.env.CORS_ORIGIN}/api/v1/users/reset-password/${resetToken}`;
-  const message = `
-     <p>Click on the link below to reset your new password:</p>
-     <p><a href="${url}">Reset New Password</a></p>
-     <p>If you didn't request this email, you can safely ignore it.</p>
-     `;
+  const verificationUrl = `${req.protocol}://${req.get("host")}/api/v1/users/reset-password/${resetToken}`;
+  // const verificationUrl = `${process.env.CORS_ORIGIN}/api/v1/users/reset-password/${resetToken}`;
 
   // Step 4: send reset password link to the user's email
-  const response = await sendEmail(
-    user.email,
-    "Console Busters Reset New Password",
-    message
-  );
+  const response = await sendEmail({
+    email: user?.email,
+    subject: "Password reset request",
+    mailgenContent: forgotPasswordMailgenContent(
+      user.username,
+      verificationUrl
+    ),
+  });
 
   // Step 5: check message sent or not
   if (!response) {
@@ -470,19 +474,18 @@ const sendEmailVerificationLink = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Step 3: create create verification email url and send message
-  const url = `${process.env.CORS_ORIGIN}/api/v1/users/email-verification/${resetToken}`;
-  const message = `
-     <p>Click on the link below to verify your email address:</p>
-     <p><a href="${url}">Verify Email</a></p>
-     <p>If you didn't request this email, you can safely ignore it.</p>
-     `;
+  const verificationUrl = `${req.protocol}://${req.get("host")}/api/v1/users/email-verification/${resetToken}`;
+  // const url = `${process.env.CORS_ORIGIN}/api/v1/users/email-verification/${resetToken}`;
 
   // Step 4: send email verification message to the user's email
-  const response = await sendEmail(
-    user.email,
-    "Console Busters Email Verification",
-    message
-  );
+  const response = await sendEmail({
+    email: user?.email,
+    subject: "Email verification request",
+    mailgenContent: emailVerificationMailgenContent(
+      user.username,
+      verificationUrl
+    ),
+  });
 
   // Step 5: check message sent or not
   if (!response) {
@@ -566,17 +569,15 @@ const sendOTPForTwoStepVerification = asyncHandler(async (req, res) => {
   const randomOTP = user.generateRandomOTPToken();
   user.save({ validateBeforeSave: false });
 
-  const message = `
-      <p>Your One-Time Password (OTP) for two-step verification is: <strong>${randomOTP}</strong></p>
-      <p>Please enter this OTP to complete the verification process.</p>
-      <p>If you didn't request this OTP, you can safely ignore this message.</p>  
-     `;
+  const response = await sendEmail({
+    email: user?.email,
+    subject: "Two step verification request",
+    mailgenContent: twoStepVerificationOTPMailgenContent(
+      user.username,
+      randomOTP
+    ),
+  });
 
-  const response = await sendEmail(
-    user.email,
-    "Console Busters Two-Step Verification",
-    message
-  );
 
   // Step 6: check OTP message sent or not
   if (!response) {
