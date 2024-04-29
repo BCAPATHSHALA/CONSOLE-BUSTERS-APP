@@ -51,11 +51,6 @@ These dependencies are essential for building and running a Node.js backend serv
 - **Description:** Object Data Modeling (ODM) library for MongoDB and Node.js.
 - **Usage:** Simplifies interaction with MongoDB databases by providing a schema-based solution for modeling application data.
 
-### mongoose-aggregate-paginate-v2
-
-- **Description:** Plugin for adding pagination support to Mongoose aggregate queries.
-- **Usage:** Allows pagination of results from MongoDB aggregate queries in Mongoose.
-
 ### multer
 
 - **Description:** Middleware for handling multipart/form-data in Express.
