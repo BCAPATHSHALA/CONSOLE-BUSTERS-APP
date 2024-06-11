@@ -48,7 +48,7 @@ router.route("/users/register").post(
 router.route("/users/email-verification").post(sendEmailVerificationLink);
 router.route("/users/email-verification/:resetToken").get(verifyEmail);
 router.route("/users/forgot-password").post(forgotPassword);
-router.route("/users/reset-password/:resetToken").get(resetPassword);
+router.route("/users/reset-password/:resetToken").post(resetPassword);
 
 router.route("/users/login").post(loginUser);
 router.route("/users/verify-otp-while-login").patch(verifyOTPWhileLoging);

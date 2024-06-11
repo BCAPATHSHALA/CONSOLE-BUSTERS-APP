@@ -375,7 +375,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   // Step 3: create reset new password link and send message
   const verificationUrl = `${req.protocol}://${req.get("host")}/api/v1/users/reset-password/${resetToken}`;
-  // const verificationUrl = `${process.env.CORS_ORIGIN}/api/v1/users/reset-password/${resetToken}`;
+  // const verificationUrl = `${process.env.CORS_ORIGIN}/reset-password/${resetToken}`;
 
   // Step 4: send reset password link to the user's email
   const response = await sendEmail({
@@ -475,7 +475,7 @@ const sendEmailVerificationLink = asyncHandler(async (req, res) => {
 
   // Step 3: create create verification email url and send message
   const verificationUrl = `${req.protocol}://${req.get("host")}/api/v1/users/email-verification/${resetToken}`;
-  // const url = `${process.env.CORS_ORIGIN}/api/v1/users/email-verification/${resetToken}`;
+  // const url = `${process.env.CORS_ORIGIN}/email-verification/${resetToken}`;
 
   // Step 4: send email verification message to the user's email
   const response = await sendEmail({
@@ -577,7 +577,6 @@ const sendOTPForTwoStepVerification = asyncHandler(async (req, res) => {
       randomOTP
     ),
   });
-
 
   // Step 6: check OTP message sent or not
   if (!response) {

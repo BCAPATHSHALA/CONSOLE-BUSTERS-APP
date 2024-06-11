@@ -1372,7 +1372,7 @@ const uploadProjectImagesById = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Maximum of two images are allowed");
   }
 
-  // Step 3: Set cloudinary images to the DB
+  // Step 3: Set cloudinary images to the DB 
   const project = await Project.findById(projectID);
   if (!project) {
     throw new ApiError(404, "Project does not exist");
